@@ -8,6 +8,7 @@
 An offline-first personal money tracker built for iPhone (as a Home Screen app) and the web.
 
 **Live:** [moneytracker-ten-phi.vercel.app](https://moneytracker-ten-phi.vercel.app)
+
 **Retro prototype (try on your phone):** [duit-os-prototype.vercel.app](https://duit-os-prototype.vercel.app), source in [`design/prototype`](design/prototype)
 
 </div>
