@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Duit OS prototype</title>
+<meta name="description" content="Interactive retro prototype of Duit, a personal money tracker.">
+<meta name="theme-color" content="#141633">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Duit OS">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  html, body { height: 100%; }
+  body {
+    margin: 0; position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
+    background: #141633; color: #E6E3F4;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    -webkit-text-size-adjust: 100%;
+  }
+  #stage {
+    position: fixed; inset: 0; box-sizing: border-box;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  #frame { position: absolute; overflow: hidden; }
+  #app { position: absolute; left: 0; top: 0; width: 390px; transform-origin: 0 0; -webkit-touch-callout: none; }
+  #app * { touch-action: manipulation; }
+</style>
+<style data-dc-after>
+  /* Moved after the prototype's own styles at boot so these win. The prototype was drawn on a fixed 390 × 844 board; let its height follow the phone. */
+  #app > .duit { height: 100% !important; }
+  #app .composer, #app .modalwin { height: auto !important; bottom: 8px; }
+  #app .sheetwin { max-height: calc(100% - 90px); overflow-y: auto; }
+  @keyframes zoomOpen {
+    0% { left: 160px; top: calc(var(--dc-h) - 57px); width: 70px; height: 48px; opacity: 1; }
+    99% { left: 8px; top: 58px; width: 371px; height: calc(var(--dc-h) - 66px); opacity: 1; }
+    100% { left: 8px; top: 58px; width: 371px; height: calc(var(--dc-h) - 66px); opacity: 0; }
+  }
+  @keyframes zoomClose {
+    0% { left: 8px; top: 58px; width: 371px; height: calc(var(--dc-h) - 66px); opacity: 1; }
+    99% { left: 160px; top: calc(var(--dc-h) - 57px); width: 70px; height: 48px; opacity: 1; }
+    100% { left: 160px; top: calc(var(--dc-h) - 57px); width: 70px; height: 48px; opacity: 0; }
+  }
+
+  .booting { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; letter-spacing: 0.08em; }
+  #dc-error {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 999; max-height: 50%; overflow: auto; margin: 0;
+    padding: 12px; background: #2A1030; color: #FFD0D0; border: 1px solid #FF8FB8; font-size: 11px; white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="frame">
+    <div id="app"><div class="booting">DUIT OS · loading…</div></div>
+  </div>
+</div>
+<script src="morphdom.min.js"></script>
+<script src="dc-lite.js"></script>
+<script>
+  (function () {
+    var BASE_W = 390;
+    var stage = document.getElementById('stage');
+    var frame = document.getElementById('frame');
+    var app = document.getElementById('app');
+
+    function px(v) { return parseFloat(v) || 0; }
+
+    function layout() {
+      var cs = getComputedStyle(stage);
+      var left = px(cs.paddingLeft), top = px(cs.paddingTop);
+      var w = stage.clientWidth - left - px(cs.paddingRight);
+      var h = stage.clientHeight - top - px(cs.paddingBottom);
+      var scale, height;
+      if (w < 600) {
+        // Phone: fill the screen edge to edge, the board grows or shrinks in height.
+        scale = w / BASE_W;
+        height = Math.max(560, h / scale);
+      } else {
+        // Tablet or desktop: show a phone-sized board, centred.
+        scale = Math.min(1.25, h / 844);
+        height = 844;
+      }
+      var fw = BASE_W * scale, fh = height * scale;
+      frame.style.width = fw + 'px';
+      frame.style.height = Math.min(fh, h) + 'px';
+      frame.style.left = left + Math.max(0, (w - fw) / 2) + 'px';
+      frame.style.top = top + Math.max(0, (h - Math.min(fh, h)) / 2) + 'px';
+      app.style.height = height + 'px';
+      app.style.transform = 'scale(' + scale + ')';
+      app.style.setProperty('--dc-h', height + 'px');
+    }
+
+    layout();
+    window.addEventListener('resize', layout);
+    window.addEventListener('orientationchange', function () { setTimeout(layout, 250); });
+    // iOS only shows :active pressed states when a touch listener exists.
+    document.addEventListener('touchstart', function () {}, { passive: true });
+
+    window.dcLite.load('Main.dc.html', app);
+  })();
+</script>
+</body>
+</html>

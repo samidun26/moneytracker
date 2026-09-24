@@ -1,0 +1,2340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Duit OS prototype</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&amp;family=Silkscreen:wght@400;700&amp;family=VT323&amp;display=swap">
+<style>
+body { margin: 0; background: #141633; }
+
+/* ---------- Themes: Day (bright paper) / Night (soft navy — no glow, no scanlines) ---------- */
+.theme-day {
+  --paper: #FFFDF7; --face: #EFEBE3; --face2: #E2DCD0; --ink: #22223B; --ink2: #5C5B7A; --line: #22223B;
+  --hi: #FFFFFF; --lo: #A7A2B4; --shadow: #22223B; --menubg: #FFFDF7; --grid: rgba(34, 34, 59, 0.12);
+  --pos: #1A7F43; --neg: #C22B2B; --warn: #9A5B00;
+  --okfill: #2FB36A; --warnfill: #F2A516; --overfill: #EF4444;
+  --lcd: #D6F5C8; --lcdink: #16361F; --lcdghost: rgba(22, 54, 31, 0.1);
+  --redink: #D93636; --greenink: #1F8F4E; --amberink: #C97A00; --blend: multiply;
+  --inc: #1E9E57; --exp: #3553E8;
+  --ti1: #C2255C; --ti2: #3553E8; --ti3: #B86E00; --ti4: #7445D9;
+  --dot: rgba(34, 34, 59, 0.16);
+}
+.duit.theme-night {
+  --paper: #1E2144; --face: #2A2E5C; --face2: #232650; --ink: #E6E3F4; --ink2: #AAA6CC; --line: #5A5FA6;
+  --hi: #3B4078; --lo: #12142C; --shadow: #0A0B1C; --menubg: #23264F; --grid: rgba(230, 227, 244, 0.12);
+  --pos: #6EE7A8; --neg: #FF8A8A; --warn: #FFD166;
+  --okfill: #4ADE80; --warnfill: #FACC15; --overfill: #F87171;
+  --lcd: #0F2E2B; --lcdink: #7CF5C8; --lcdghost: rgba(124, 245, 200, 0.09);
+  --redink: #FF7B7B; --greenink: #5BE39A; --amberink: #FFC857; --blend: screen;
+  --inc: #2EA863; --exp: #6F7EF0;
+  --ti1: #FF8FB8; --ti2: #8FA0FF; --ti3: #FFD45C; --ti4: #C9A8FF;
+  --dot: rgba(230, 227, 244, 0.08);
+}
+
+/* Palettes: five title-bar colors + the desktop */
+.pal-candy { --t1: #FFB3C7; --t2: #9EE6C5; --t3: #FFE08A; --t4: #A5D5FF; --t5: #CDB8FF; --desk: #A9B0F5; }
+.pal-arcade { --t1: #FF6B6B; --t2: #45D16F; --t3: #FFD23F; --t4: #4DA3FF; --t5: #B983FF; --desk: #2FA39A; }
+.pal-sunset { --t1: #FF8C7A; --t2: #5CC6B8; --t3: #F2C14E; --t4: #FFA552; --t5: #D49BD6; --desk: #F2B48A; }
+.duit.theme-night.pal-candy { --t1: #F58FB0; --t2: #6FD6AC; --t3: #F2C95C; --t4: #7FBEF5; --t5: #B09AF5; --desk: #171A3A; }
+.duit.theme-night.pal-arcade { --t1: #FF6B6B; --t2: #4ADE80; --t3: #FACC15; --t4: #60A5FA; --t5: #C084FC; --desk: #0E2A2D; }
+.duit.theme-night.pal-sunset { --t1: #F2786A; --t2: #3FB5A6; --t3: #E8B23A; --t4: #F29441; --t5: #C585C8; --desk: #1C1733; }
+
+/* Accent: selection, primary button, New */
+.duit { --accink: #FFFFFF; }
+.acc-cobalt { --acc: #3553E8; }
+.acc-berry { --acc: #D6336C; }
+.acc-teal { --acc: #0F7C73; }
+.acc-grape { --acc: #7445D9; }
+
+/* Category & account tiles (dark ink icon on a bright tile — readable in both themes) */
+.cc-orange { background-color: #FF9B54; }
+.cc-caramel { background-color: #D9A066; }
+.cc-green { background-color: #5FD08A; }
+.cc-blue { background-color: #6AAEFF; }
+.cc-violet { background-color: #A38BFF; }
+.cc-yellow { background-color: #FFD45C; }
+.cc-purple { background-color: #D38BFF; }
+.cc-pink { background-color: #FF8FB8; }
+.cc-red { background-color: #FF7272; }
+.cc-mint { background-color: #5ED6C4; }
+.cc-peach { background-color: #FFB38A; }
+.cc-gray { background-color: #B8B6CC; }
+.cc-lilac { background-color: #C7C3E6; }
+
+/* ---------- Base ---------- */
+.duit {
+  font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  color: var(--ink); font-size: 15px; line-height: 1.3;
+  -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none;
+}
+.duit * { box-sizing: border-box; }
+:where(.duit) button { font: inherit; color: inherit; cursor: pointer; margin: 0; -webkit-tap-highlight-color: transparent; }
+:where(.duit) p, :where(.duit) h2, :where(.duit) h3 { margin: 0; }
+.duit svg.px { shape-rendering: crispEdges; display: block; flex-shrink: 0; }
+.caps { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); }
+.note { font-size: 12.5px; color: var(--ink2); line-height: 1.4; }
+.grow { flex-grow: 1; min-width: 0; }
+.tile { width: 36px; height: 36px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); color: #22223B; box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5), inset -1px -1px 0 rgba(0, 0, 0, 0.14); }
+.tile-md { width: 44px; height: 44px; }
+.tile-lg { width: 46px; height: 46px; }
+
+/* ---------- Desktop ---------- */
+.desktop { position: absolute; left: 0; top: 0; right: 0; bottom: 0; background-color: var(--desk); }
+.tex .desktop { background-image: radial-gradient(var(--dot) 1px, transparent 1.3px); background-size: 6px 6px; }
+
+/* ---------- Menu bar with palette stripe ---------- */
+.menubar { position: absolute; left: 0; right: 0; top: 0; height: 50px; z-index: 20; display: flex; align-items: flex-start; background: var(--menubg); }
+.menubar::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 6px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: linear-gradient(to right, var(--t1) 0 20%, var(--t2) 20% 40%, var(--t3) 40% 60%, var(--t4) 60% 80%, var(--t5) 80% 100%); }
+.mb { height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 12px; border: 0; background: transparent; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; }
+.mb:active, .mb-on { background: var(--acc); color: var(--accink); }
+.mb-where { margin-left: auto; height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 12px; font-size: 12px; font-weight: 600; color: var(--ink2); }
+.logo-d { fill: currentColor; }
+.logo-c { fill: #F2B11B; }
+
+/* ---------- Scroll area ---------- */
+.content { position: absolute; left: 0; right: 0; top: 50px; bottom: 64px; z-index: 1; overflow-y: auto; overflow-x: hidden; padding: 16px 12px 28px; display: flex; flex-direction: column; gap: 20px; scrollbar-width: none; }
+.content::-webkit-scrollbar { display: none; }
+
+/* ---------- Windows: colored title bars with dot leaders ---------- */
+.win { position: relative; flex-shrink: 0; background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow); }
+.tbar { position: relative; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 6px 0 8px; background: var(--face); color: var(--ink); border-bottom: 1px solid var(--line); }
+.tc-1 { background: var(--t1); color: #22223B; }
+.tc-2 { background: var(--t2); color: #22223B; }
+.tc-3 { background: var(--t3); color: #22223B; }
+.tc-4 { background: var(--t4); color: #22223B; }
+.tc-5 { background: var(--t5); color: #22223B; }
+.tc-acc { background: var(--acc); color: var(--accink); }
+.win-shut .tbar { border-bottom: 0; }
+.wtitle { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; font-weight: 700; white-space: nowrap; }
+.leader { flex-grow: 1; height: 4px; opacity: 0.5; background-image: radial-gradient(currentColor 0.9px, transparent 1.2px); background-size: 5px 4px; background-position: 0 center; }
+.wctl { width: 18px; height: 18px; flex-shrink: 0; border: 1px solid #22223B; background: #FFFFFF; display: flex; align-items: center; justify-content: center; }
+.wctl::after { content: ''; width: 8px; height: 2px; background: #22223B; }
+.win-shut .wctl::after { height: 8px; background: transparent; border: 2px solid #22223B; }
+.thit { position: absolute; left: 0; right: 0; top: -6px; bottom: -6px; z-index: 2; border: 0; background: transparent; padding: 0; }
+.wbody { padding: 14px; }
+.flush { padding: 0; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- Controls ---------- */
+.btn { min-height: 44px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; color: var(--ink); background: var(--face); border: 1px solid var(--line); border-radius: 5px; box-shadow: inset 1px 1px 0 var(--hi), inset -1px -1px 0 var(--lo); }
+.btn:active { box-shadow: inset 1px 1px 0 var(--lo), inset -1px -1px 0 var(--hi); background-color: var(--face2); padding-top: 2px; }
+.btn-def { border-radius: 7px; background: var(--acc); color: var(--accink); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(0, 0, 0, 0.25), 0 0 0 2px var(--paper), 0 0 0 4px var(--line); }
+.btn-def:active { background: var(--acc); box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.25), inset -1px -1px 0 rgba(255, 255, 255, 0.35), 0 0 0 2px var(--paper), 0 0 0 4px var(--line); }
+.btn-row { display: flex; gap: 14px; flex-wrap: wrap; }
+.btn-row-end { justify-content: flex-end; }
+.sunk { background: var(--paper); border: 1px solid var(--line); box-shadow: inset 1px 1px 0 var(--lo), inset -1px -1px 0 var(--hi); }
+.lcd { position: relative; overflow: hidden; background: var(--lcd); color: var(--lcdink); border: 1px solid var(--line); box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.14); font-family: 'VT323', ui-monospace, Menlo, monospace; }
+.lcdcaps { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lcdink); }
+.lcd-ghost { position: absolute; right: 12px; bottom: 6px; font-size: 46px; line-height: 1; color: var(--lcdghost); }
+.tabs { display: flex; padding: 0 2px; border-bottom: 1px solid var(--line); }
+.tab { flex: 1 1 0; min-height: 44px; margin-bottom: -1px; border: 1px solid var(--line); border-bottom: 0; border-radius: 6px 6px 0 0; background: var(--face2); color: var(--ink2); font-family: 'Silkscreen', ui-monospace, monospace; font-size: 14px; }
+.tab + .tab { margin-left: -1px; }
+.tab-on { position: relative; z-index: 1; background: var(--paper); color: var(--ink); border-bottom: 1px solid var(--paper); }
+.popup { flex: 1 1 0; min-width: 0; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border: 1px solid var(--line); background: var(--paper); box-shadow: 2px 2px 0 var(--shadow); font-size: 14px; font-weight: 600; text-align: left; }
+.popup:active { background: var(--acc); color: var(--accink); }
+.tri { width: 0; height: 0; flex-shrink: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-top: 6px solid currentColor; }
+.opt { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 0 2px; border: 0; background: transparent; font-size: 15px; text-align: left; }
+.opt-hint { margin-left: auto; font-size: 11.5px; color: var(--ink2); }
+.radio { width: 20px; height: 20px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--paper); box-shadow: inset 1px 1px 0 var(--lo); display: flex; align-items: center; justify-content: center; }
+.radio-on::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--acc); }
+.checkb { width: 20px; height: 20px; flex-shrink: 0; border: 1px solid var(--line); background: var(--paper); box-shadow: inset 1px 1px 0 var(--lo); display: flex; align-items: center; justify-content: center; color: var(--acc); }
+.group { min-width: 0; margin: 0 0 16px; padding: 6px 12px 12px; border: 1px solid var(--ink2); }
+.group > legend { padding: 0 6px; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; color: var(--ink); }
+.pstrip { margin-left: auto; width: 72px; height: 16px; flex-shrink: 0; border: 1px solid var(--line); }
+.pstrip-candy { background: linear-gradient(to right, #FFB3C7 0 20%, #9EE6C5 20% 40%, #FFE08A 40% 60%, #A5D5FF 60% 80%, #CDB8FF 80%); }
+.pstrip-arcade { background: linear-gradient(to right, #FF6B6B 0 20%, #45D16F 20% 40%, #FFD23F 40% 60%, #4DA3FF 60% 80%, #B983FF 80%); }
+.pstrip-sunset { background: linear-gradient(to right, #FF8C7A 0 20%, #5CC6B8 20% 40%, #F2C14E 40% 60%, #FFA552 60% 80%, #D49BD6 80%); }
+
+/* ---------- Budget block meters ---------- */
+.meter { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 2px; height: 16px; padding: 2px; }
+.blk { display: block; height: 100%; background: var(--grid); }
+.blk-ok { background: var(--okfill); }
+.blk-warn { background: var(--warnfill); }
+.blk-over { background: var(--overfill); }
+.brow { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.bname { font-size: 14px; font-weight: 600; }
+.bfoot { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--ink2); }
+.bleft-warn { color: var(--warn); font-weight: 600; }
+.bleft-over { color: var(--neg); font-weight: 600; }
+
+/* ---------- Rubber stamps ---------- */
+.stamp {
+  position: absolute; z-index: 5; pointer-events: none; white-space: nowrap;
+  font-family: 'Silkscreen', ui-monospace, monospace; font-weight: 700; font-size: 13px; line-height: 1; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--sink); border: 3px double var(--sink); border-radius: 6px; padding: 5px 8px 4px;
+  mix-blend-mode: var(--blend); opacity: 0.92;
+  transform: rotate(var(--tilt));
+  -webkit-mask-image: repeating-linear-gradient(115deg, #000 0 3px, rgba(0, 0, 0, 0.7) 3px 4px, #000 4px 9px, rgba(0, 0, 0, 0.84) 9px 10px);
+  mask-image: repeating-linear-gradient(115deg, #000 0 3px, rgba(0, 0, 0, 0.7) 3px 4px, #000 4px 9px, rgba(0, 0, 0, 0.84) 9px 10px);
+  animation: thud 380ms cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
+}
+.stamp-md { font-size: 17px; padding: 6px 10px 5px; border-width: 4px; }
+.stamp-lg { font-size: 30px; padding: 9px 16px 7px; border-width: 5px; border-radius: 10px; }
+.ink-red { --sink: var(--redink); }
+.ink-green { --sink: var(--greenink); }
+.ink-amber { --sink: var(--amberink); }
+.tilt-a { --tilt: -9deg; }
+.tilt-b { --tilt: -4deg; }
+.tilt-c { --tilt: 6deg; }
+.tilt-d { --tilt: -12deg; }
+.tilt-e { --tilt: 3deg; }
+.dly-0 { animation-delay: 150ms; }
+.dly-1 { animation-delay: 330ms; }
+.dly-2 { animation-delay: 510ms; }
+.dly-3 { animation-delay: 690ms; }
+.brow .stamp { right: 0; top: -6px; }
+.bill .stamp { right: 12px; top: 13px; }
+.saved { left: 60px; top: 176px; }
+@keyframes thud {
+  0% { opacity: 0; transform: rotate(var(--tilt)) scale(2.4); }
+  55% { opacity: 1; transform: rotate(var(--tilt)) scale(0.9); }
+  78% { transform: rotate(var(--tilt)) scale(1.05); }
+  100% { opacity: 0.92; transform: rotate(var(--tilt)) scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 1px); }
+  40% { transform: translate(3px, -1px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(1px, 0); }
+}
+.shake { animation: shake 300ms steps(6) 140ms; }
+
+/* ---------- Home ---------- */
+.hero { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 32px; font-weight: 700; line-height: 1.1; margin-top: 6px; letter-spacing: -0.02em; }
+.up { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; font-weight: 600; color: var(--pos); }
+.icons4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 16px; }
+.dicon { display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; }
+.dlabel { font-size: 12px; font-weight: 600; }
+.dbal { font-size: 13px; font-weight: 600; line-height: 1; }
+.dbal-neg { color: var(--neg); }
+.duo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.statbox { padding: 8px 10px 6px; display: flex; flex-direction: column; gap: 2px; }
+.lcdnum { font-size: 32px; line-height: 1; }
+.pace { margin-top: 10px; }
+
+/* ---------- Lists ---------- */
+.lhead { display: flex; justify-content: space-between; padding: 6px 12px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); background: var(--face); border-bottom: 1px solid var(--line); }
+.row { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 6px 12px; border: 0; background: transparent; text-align: left; font-size: 14px; }
+.row + .row { border-top: 1px dotted var(--ink2); }
+.row-sel { background: var(--acc); color: var(--accink); }
+.row-sel .sub, .row-sel .amt { color: var(--accink); }
+.rname { display: block; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sub { display: block; font-size: 11.5px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.amt { flex-shrink: 0; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.amt-pos { color: var(--pos); }
+.amt-dim { color: var(--ink2); }
+.amt-sm { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flash { animation: flash 1100ms steps(1) both; }
+@keyframes flash {
+  0% { background: var(--acc); color: var(--accink); }
+  20% { background: transparent; color: var(--ink); }
+  40% { background: var(--acc); color: var(--accink); }
+  60% { background: transparent; color: var(--ink); }
+  100% { background: transparent; color: var(--ink); }
+}
+.bill { min-height: 66px; }
+.bill-done .grow, .bill-done .amt, .bill-done .tile { opacity: 0.45; }
+.due { display: block; font-size: 11.5px; color: var(--ink2); }
+.due-late { color: var(--neg); font-weight: 700; }
+.more-link { width: 100%; min-height: 44px; border: 0; border-top: 1px solid var(--line); background: var(--face); font-family: 'Silkscreen', ui-monospace, monospace; font-size: 14px; }
+.more-link:active { background: var(--acc); color: var(--accink); }
+.dayhead { display: flex; justify-content: space-between; padding: 8px 12px 5px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); background: var(--face); border-top: 1px solid var(--line); border-bottom: 1px dotted var(--ink2); }
+.search { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 10px; }
+.sinput { flex-grow: 1; min-width: 0; border: 0; outline: none; background: transparent; font-family: inherit; font-size: 16px; color: var(--ink); -webkit-user-select: text; user-select: text; }
+.sinput::placeholder { color: var(--ink2); }
+.mt { margin-top: 12px; }
+.empty { padding: 22px 16px; text-align: center; font-size: 13px; color: var(--ink2); }
+
+/* ---------- Insights ---------- */
+.slice { display: flex; align-items: center; gap: 10px; }
+.srow { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sbar { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+.strack { flex-grow: 1; height: 10px; }
+.sfill { display: block; height: 100%; background: var(--exp); }
+.spct { width: 38px; flex-shrink: 0; text-align: right; font-size: 12px; font-weight: 600; color: var(--ink2); }
+.legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink2); }
+.sw { width: 14px; height: 14px; flex-shrink: 0; border: 1px solid var(--line); }
+.sw-gap { width: 10px; }
+.chart { position: relative; height: 176px; margin-top: 10px; }
+.gline { position: absolute; left: 36px; right: 0; height: 1px; background: var(--grid); }
+.glabel { position: absolute; left: 0; width: 31px; text-align: right; transform: translateY(-50%); font-size: 10.5px; font-weight: 600; line-height: 1; color: var(--ink2); }
+.selband { position: absolute; top: 4px; height: 150px; background: var(--grid); }
+.bar { position: absolute; width: 14px; }
+.inc { background: var(--inc); }
+.exp { background: var(--exp); }
+.mlabel { position: absolute; bottom: 0; width: 40px; margin-left: -20px; text-align: center; font-size: 11px; font-weight: 600; line-height: 1; color: var(--ink2); }
+.mlabel-on { color: var(--ink); text-decoration: underline; }
+.colhit { position: absolute; top: 0; bottom: 0; z-index: 3; border: 0; background: transparent; padding: 0; }
+.statusbar { margin-top: 12px; padding: 7px 9px; font-size: 12px; min-height: 32px; }
+.kv { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 48px; padding: 0 14px; font-size: 14px; }
+.kv + .kv { border-top: 1px dotted var(--ink2); }
+
+/* ---------- Taskbar ---------- */
+.taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; padding: 7px 8px 9px; background: var(--face); border-top: 1px solid var(--line); box-shadow: inset 0 1px 0 var(--hi); }
+.tb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 48px; padding: 0; font-size: 10.5px; font-weight: 700; border: 1px solid var(--line); border-radius: 4px; background-color: var(--face); box-shadow: inset 1px 1px 0 var(--hi), inset -1px -1px 0 var(--lo); }
+.tb:active { box-shadow: inset 1px 1px 0 var(--lo), inset -1px -1px 0 var(--hi); }
+.tb-on { background-color: var(--paper); box-shadow: inset 1px 1px 0 var(--lo), inset -1px -1px 0 var(--hi); }
+.tb-new { background-color: var(--acc); color: var(--accink); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.35), inset -1px -1px 0 rgba(0, 0, 0, 0.25); }
+.ti-1 { color: var(--ti1); }
+.ti-2 { color: var(--ti2); }
+.ti-3 { color: var(--ti3); }
+.ti-4 { color: var(--ti4); }
+
+/* ---------- Menus ---------- */
+.scrim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 25; border: 0; padding: 0; background: transparent; }
+.dd { position: absolute; top: 50px; z-index: 30; min-width: 240px; padding: 4px 0; background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow); animation: drop 130ms steps(3) both; }
+.dd-file { left: 48px; }
+.dd-view { left: 100px; }
+@keyframes drop { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+.mi { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 0 14px 0 10px; border: 0; background: transparent; font-size: 15px; text-align: left; color: var(--ink); }
+.mi:active { background: var(--acc); color: var(--accink); }
+.chk { width: 16px; height: 16px; flex-shrink: 0; color: var(--acc); }
+.mi:active .chk { color: var(--accink); }
+.msep { margin: 4px 0; border-top: 1px dotted var(--ink2); }
+
+/* ---------- Composer + zoom rectangles ---------- */
+.modal-scrim { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 35; background: rgba(20, 22, 51, 0.35); }
+.tex .modal-scrim { background-color: transparent; background-image: conic-gradient(rgba(20, 22, 51, 0.45) 25%, transparent 0 50%, rgba(20, 22, 51, 0.45) 0 75%, transparent 0); background-size: 2px 2px; }
+.zr { position: absolute; z-index: 40; pointer-events: none; border: 1px dotted var(--ink); }
+.zr-open { animation: zoomOpen 280ms steps(7, end) both; }
+.zr-close { animation: zoomClose 240ms steps(6, end) both; }
+.zr-1 { animation-delay: 40ms; }
+.zr-2 { animation-delay: 80ms; }
+.zr-3 { animation-delay: 120ms; }
+@keyframes zoomOpen {
+  0% { left: 160px; top: 787px; width: 70px; height: 48px; opacity: 1; }
+  99% { left: 8px; top: 58px; width: 371px; height: 778px; opacity: 1; }
+  100% { left: 8px; top: 58px; width: 371px; height: 778px; opacity: 0; }
+}
+@keyframes zoomClose {
+  0% { left: 8px; top: 58px; width: 371px; height: 778px; opacity: 1; }
+  99% { left: 160px; top: 787px; width: 70px; height: 48px; opacity: 1; }
+  100% { left: 160px; top: 787px; width: 70px; height: 48px; opacity: 0; }
+}
+.composer { position: absolute; left: 8px; top: 58px; width: 371px; height: 778px; z-index: 50; display: flex; flex-direction: column; animation: appear 80ms steps(2) both; }
+@keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+.xbtn { position: relative; z-index: 3; width: 44px; height: 44px; margin: -6px -6px -6px -10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; padding: 0; }
+.xbox { width: 18px; height: 18px; border: 1px solid #22223B; background: #FFFFFF; color: #22223B; display: flex; align-items: center; justify-content: center; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 12px; line-height: 1; }
+.cbody { flex-grow: 1; min-height: 0; overflow: hidden; padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.biglcd { height: 66px; flex-shrink: 0; }
+.biglcd .lcdcaps { position: absolute; left: 10px; right: 10px; top: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lcdamt { position: absolute; right: 12px; bottom: 5px; font-size: 42px; line-height: 1; white-space: nowrap; }
+.biglcd .lcd-ghost { bottom: 5px; font-size: 42px; }
+.cats { flex: 1 1 auto; min-height: 0; overflow-y: auto; align-content: start; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 4px; padding: 4px 2px; scrollbar-width: none; }
+.cats::-webkit-scrollbar { display: none; }
+.cat { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 72px; padding: 4px 2px; border: 0; background: transparent; font-size: 10.5px; line-height: 1.15; }
+.cat .tile-lg { width: 42px; height: 42px; }
+.lbl { padding: 1px 4px 2px; text-align: center; }
+.cat-on .tile { box-shadow: 0 0 0 2px var(--paper), 0 0 0 5px var(--acc); }
+.cat-on .lbl { background: var(--acc); color: var(--accink); }
+.xfer { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; padding: 6px 2px; }
+.pops { display: flex; gap: 10px; flex-shrink: 0; }
+.keys { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; flex-shrink: 0; }
+.key { min-height: 44px; font-family: 'VT323', ui-monospace, monospace; font-size: 30px; line-height: 1; border: 1px solid var(--line); border-radius: 5px; background: var(--face); box-shadow: inset 1px 1px 0 var(--hi), inset -2px -2px 0 var(--lo), 0 2px 0 var(--line); }
+.key:active { transform: translateY(2px); box-shadow: inset 1px 1px 0 var(--lo), inset -1px -1px 0 var(--hi); }
+.key-sm { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 15px; }
+.cstatus { flex: 1 1 auto; min-width: 0; font-size: 12px; line-height: 1.3; color: var(--ink2); }
+.cfoot { display: flex; align-items: center; gap: 12px; flex-shrink: 0; padding: 4px 4px 4px 0; }
+.field { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 2px 0 10px; flex-shrink: 0; cursor: text; }
+.fcap { flex-shrink: 0; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 12px; color: var(--ink2); }
+.finput { flex-grow: 1; min-width: 0; height: 42px; border: 0; outline: none; background: transparent; font-family: inherit; font-size: 16px; font-weight: 600; color: var(--ink); -webkit-user-select: text; user-select: text; }
+.finput::placeholder { color: var(--ink2); font-weight: 400; }
+.fclear { width: 40px; height: 40px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; padding: 0; }
+.fclear-box { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--line); background: var(--face); font-family: 'Silkscreen', ui-monospace, monospace; font-size: 11px; line-height: 1; }
+.chips { display: flex; align-items: center; gap: 6px; flex-shrink: 0; overflow-x: auto; margin: 0 -12px; padding: 0 12px 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chipcap { flex-shrink: 0; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); }
+.chip { flex-shrink: 0; min-height: 40px; display: flex; align-items: center; gap: 7px; padding: 0 11px; white-space: nowrap; font-size: 13px; font-weight: 600; border: 1px solid var(--line); border-radius: 4px; background: var(--face); box-shadow: inset 1px 1px 0 var(--hi), inset -1px -1px 0 var(--lo); }
+.chip:active { background: var(--acc); color: var(--accink); box-shadow: inset 1px 1px 0 var(--lo), inset -1px -1px 0 var(--hi); }
+.dot { width: 10px; height: 10px; flex-shrink: 0; border: 1px solid var(--line); }
+.cstatus-err { color: var(--neg); font-weight: 700; }
+
+/* ---------- Alert ---------- */
+.alert { position: absolute; left: 20px; right: 20px; top: 260px; z-index: 60; background: var(--paper); border: 1px solid var(--line); box-shadow: 3px 3px 0 var(--shadow), inset 0 0 0 3px var(--paper), inset 0 0 0 4px var(--line); animation: appear 80ms steps(2) both; }
+.alert-body { display: flex; gap: 14px; padding: 20px 18px 14px; }
+.atitle { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; margin-bottom: 6px; }
+.alert-foot { padding: 0 18px 20px; }
+
+/* ---------- Tanggal Tua battery ---------- */
+.batt { display: flex; align-items: center; gap: 12px; }
+.batt-body { flex-grow: 1; display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 2px; height: 36px; padding: 3px; }
+.batt-nub { width: 6px; height: 16px; margin-left: -12px; flex-shrink: 0; background: var(--line); }
+.cell { display: block; height: 100%; background: var(--grid); }
+.cell-ok { background: var(--okfill); }
+.cell-warn { background: var(--warnfill); }
+.cell-low { background: var(--overfill); }
+.charge { animation: charge 1ms steps(1) both; }
+@keyframes charge { from { opacity: 0; } to { opacity: 1; } }
+.batt-pct { width: 54px; flex-shrink: 0; text-align: right; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 18px; }
+.batt-low { color: var(--neg); }
+.allow { margin-top: 12px; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 26px; line-height: 1.1; }
+.allow-unit { font-size: 14px; color: var(--ink2); }
+.ps-pill { display: inline-flex; margin-top: 10px; padding: 5px 8px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #22223B; background: #FF8FB8; border: 1px solid var(--line); }
+.power .desktop::after { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(10, 11, 28, 0.42); }
+.mbatt { margin-left: auto; height: 44px; display: flex; align-items: center; gap: 5px; padding: 0 2px 0 8px; font-size: 12px; font-weight: 700; color: var(--ink2); }
+.mbatt-low { color: var(--neg); }
+.mbatt-box { width: 24px; height: 12px; display: flex; padding: 1px; border: 1px solid currentColor; }
+.mbatt-fill { display: block; height: 100%; background: currentColor; }
+.mbatt + .mb-where { margin-left: 0; padding-left: 8px; }
+
+/* ---------- Duit Terminal ---------- */
+.term { background: #16182F; color: #9EF0C8; border: 1px solid var(--line); box-shadow: inset 2px 2px 0 rgba(0, 0, 0, 0.45); padding: 10px 10px 2px; font-size: 12.5px; line-height: 1.45; }
+.tline { white-space: pre-wrap; word-break: break-word; }
+.tl-in { color: #FFB3C7; }
+.tl-ok { color: #9EF0C8; }
+.tl-err { color: #FF9B9B; }
+.tl-dim { color: #9A9CC6; }
+.tprompt-row { display: flex; align-items: center; gap: 8px; }
+.tprompt { flex-shrink: 0; font-size: 14px; font-weight: 700; color: #FFD45C; }
+.tinput { flex-grow: 1; min-width: 0; height: 44px; border: 0; outline: none; background: transparent; color: #F2F0FA; font-family: inherit; font-size: 16px; caret-color: #FFD45C; -webkit-user-select: text; user-select: text; }
+.tinput::placeholder { color: #7E81B0; }
+.pchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pchip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); background: var(--face); }
+.pnote { margin-top: 6px; font-size: 11.5px; color: var(--ink2); }
+.term-stamp { right: 18px; top: 46px; --blend: normal; --sink: #5FE39A; }
+
+/* ---------- Sepadan? (worth it) ---------- */
+.wcard { position: relative; display: flex; align-items: center; gap: 10px; }
+.wq { margin: 14px 0 10px; font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; }
+.btn-good { background: #5FD08A; color: #22223B; }
+.btn-bad { background: #FF8FB8; color: #22223B; }
+.wstamp { right: 56px; top: 4px; }
+.dicon { border: 0; background: transparent; padding: 4px 0; min-height: 44px; }
+.dicon:active .tile { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--acc); }
+
+/* ---------- Insights: prices, habits ---------- */
+.basket { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 20px; color: var(--neg); }
+.spark { display: flex; align-items: flex-end; gap: 2px; height: 22px; flex-shrink: 0; }
+.spark i { display: block; width: 5px; background: var(--exp); }
+.pct { width: 48px; flex-shrink: 0; text-align: right; font-size: 13px; font-weight: 700; }
+.pct-up { color: var(--neg); }
+.pct-flat { color: var(--ink2); }
+.habit-x { padding: 2px 14px 14px 58px; }
+.hlabel { margin-top: 6px; font-size: 13px; }
+.hres { margin-top: 4px; font-size: 13px; font-weight: 600; }
+.range { width: 100%; height: 44px; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; }
+.range::-webkit-slider-runnable-track { height: 10px; border: 1px solid var(--line); background: var(--grid); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 28px; margin-top: -10px; border: 1px solid var(--line); background: var(--face); box-shadow: inset 1px 1px 0 var(--hi), inset -1px -1px 0 var(--lo); }
+.range::-moz-range-track { height: 10px; border: 1px solid var(--line); background: var(--grid); }
+.range::-moz-range-thumb { width: 22px; height: 28px; border: 1px solid var(--line); border-radius: 0; background: var(--face); }
+
+/* ---------- Balance Check / Payday modals ---------- */
+.modalwin { position: absolute; left: 8px; top: 58px; width: 371px; height: 778px; z-index: 50; display: flex; flex-direction: column; animation: appear 80ms steps(2) both; }
+.sheetwin { position: absolute; left: 8px; top: 74px; width: 371px; z-index: 50; animation: appear 80ms steps(2) both; }
+.bc-compare { flex-shrink: 0; font-size: 12px; color: var(--ink2); }
+.bc-result { position: relative; flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.bc-gap { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; }
+.combo { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 10px; }
+.combo-t { font-size: 13px; font-weight: 600; }
+.chips.wrap { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+.bc-stamp { left: 70px; top: 26px; }
+.splitrow { display: flex; align-items: center; gap: 10px; }
+.btn-sq { width: 44px; padding: 0; font-size: 20px; }
+.spendbox { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; }
+.spend { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 24px; }
+.spend-neg { color: var(--neg); }
+.split-stamp { left: 80px; top: 200px; }
+
+/* ---------- Payday boot screen ---------- */
+.boot { position: absolute; left: 0; top: 0; right: 0; bottom: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: #141633; color: #E6E3F4; animation: appear 80ms steps(2) both; }
+.boot .logo-d { fill: #E6E3F4; }
+.boot-title { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 32px; }
+.boot-sub { font-family: 'Silkscreen', ui-monospace, monospace; font-size: 16px; color: #FFD45C; }
+.boot-bar { width: 220px; height: 22px; padding: 2px; border: 2px solid #E6E3F4; }
+.boot-fill { display: block; width: 0; height: 100%; background: #4ADE80; animation: bootfill 1500ms steps(10) forwards; }
+@keyframes bootfill { to { width: 100%; } }
+.boot-line { font-size: 13px; color: #AAA6CC; opacity: 0; animation: charge 1ms steps(1) forwards; }
+.bl-1 { animation-delay: 350ms; }
+.bl-2 { animation-delay: 900ms; }
+.bl-3 { animation-delay: 1500ms; }
+
+/* ---------- Compact mode: real phones give the board less than the 844px it was drawn on ---------- */
+.duit { container: duit / size; }
+@container duit (max-height: 830px) {
+  /* Fit as many whole rows of categories as the height allows and scroll the rest sideways, so no row is ever cut in half. */
+  .cats { min-height: 80px; grid-auto-flow: column; grid-template-columns: none; grid-template-rows: repeat(auto-fill, minmax(76px, 1fr)); grid-auto-columns: 22%; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
+  .cats .cat { justify-content: center; }
+  .cbody { gap: 6px; padding: 8px 10px; overflow-y: auto; scrollbar-width: none; }
+  .cbody::-webkit-scrollbar { display: none; }
+  .tab { min-height: 38px; }
+  .biglcd { height: 56px; }
+  .lcdamt, .biglcd .lcd-ghost { bottom: 3px; font-size: 36px; }
+  .keys { gap: 5px; }
+  .key { min-height: 40px; }
+  .cfoot { padding: 0 4px 0 0; }
+  .cstatus { font-size: 11px; }
+}
+@container duit (max-height: 700px) {
+  .cat { min-height: 66px; }
+  .biglcd { height: 50px; }
+  .lcdamt, .biglcd .lcd-ghost { font-size: 32px; }
+  .field { min-height: 40px; }
+  .finput { height: 38px; }
+  .chip { min-height: 36px; }
+  .popup { min-height: 40px; }
+  .key { min-height: 38px; }
+}
+</style>
+</helmet>
+<div class="duit {{ rootCls }}" style="width: 390px; height: 844px; position: relative; overflow: hidden;">
+<div class="desktop"></div>
+
+<header class="menubar">
+<button class="mb" type="button" aria-label="About Duit" onClick="{{ openAbout }}">
+<svg class="px" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path class="logo-d" d="{{ ic.logo }}"></path><path class="logo-c" d="{{ ic.coin }}"></path></svg>
+</button>
+<button class="{{ mbFileCls }}" type="button" aria-haspopup="menu" aria-expanded="{{ menuFile }}" onClick="{{ toggleFile }}">File</button>
+<button class="{{ mbViewCls }}" type="button" aria-haspopup="menu" aria-expanded="{{ menuView }}" onClick="{{ toggleView }}">View</button>
+<div class="{{ mbattCls }}" role="img" aria-label="{{ tt.aria }}"><span class="mbatt-box"><span class="mbatt-fill" style="width: {{ tt.pct }}%"></span></span><span>{{ tt.pctText }}</span></div>
+<div class="mb-where">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ whereIcon }}" fill="currentColor"></path></svg>
+<span>{{ whereName }}</span>
+</div>
+</header>
+
+<main class="content" ref="{{ setContent }}">
+
+<sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+
+<section class="{{ w.tt.cls }}">
+<div class="tbar tc-3">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.battery }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Tanggal Tua</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Tanggal Tua" aria-expanded="{{ w.tt.open }}" onClick="{{ w.tt.toggle }}"></button>
+</div>
+<sc-if value="{{ w.tt.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody">
+<div class="batt" role="img" aria-label="{{ tt.aria }}">
+<div class="sunk batt-body">
+<sc-for list="{{ tt.cells }}" as="c" hint-placeholder-count="20"><span class="{{ c.cls }}" style="animation-delay: {{ c.delay }}ms"></span></sc-for>
+</div>
+<span class="batt-nub"></span>
+<span class="{{ tt.pctCls }}">{{ tt.pctText }}</span>
+</div>
+<p class="allow">{{ tt.allowText }}<span class="allow-unit"> / day</span></p>
+<p class="note">{{ tt.subText }}</p>
+<sc-if value="{{ tt.power }}" hint-placeholder-val="{{ true }}"><p class="ps-pill">Power saving on · spend gently</p></sc-if>
+<div class="btn-row mt">
+<button class="btn" type="button" onClick="{{ openBalanceDefault }}">Balance check</button>
+<sc-if value="{{ tt.canPayday }}" hint-placeholder-val="{{ true }}"><button class="btn btn-def" type="button" onClick="{{ simulatePayday }}">Simulate payday</button></sc-if>
+</div>
+</div>
+</sc-if>
+</section>
+
+<section class="{{ w.term.cls }}">
+<div class="tbar tc-5">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.term }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Duit Terminal</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Duit Terminal" aria-expanded="{{ w.term.open }}" onClick="{{ w.term.toggle }}"></button>
+</div>
+<sc-if value="{{ w.term.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody">
+<div class="term" aria-live="polite">
+<sc-for list="{{ termLines }}" as="l" hint-placeholder-count="2"><p class="{{ l.cls }}">{{ l.text }}</p></sc-for>
+<div class="tprompt-row">
+<span class="tprompt">duit&gt;</span>
+<input class="tinput" type="text" placeholder="es teh goceng" aria-label="Type an expense or a question" value="{{ cmd }}" onChange="{{ onCmd }}" onKeyDown="{{ onCmdKey }}">
+</div>
+</div>
+<sc-if value="{{ hasPreview }}" hint-placeholder-val="{{ false }}">
+<div class="pchips" role="group" aria-label="Will be logged as">
+<sc-for list="{{ previewChips }}" as="p" hint-placeholder-count="5"><span class="pchip"><span class="{{ p.dotCls }}"></span><span>{{ p.text }}</span></span></sc-for>
+</div>
+<sc-for list="{{ previewNotes }}" as="n" hint-placeholder-count="1"><p class="pnote">{{ n.text }}</p></sc-for>
+</sc-if>
+<sc-if value="{{ showExamples }}" hint-placeholder-val="{{ true }}">
+<div class="chips mt" role="group" aria-label="Examples to try">
+<sc-for list="{{ examples }}" as="e" hint-placeholder-count="6"><button class="chip" type="button" onClick="{{ e.pick }}">{{ e.text }}</button></sc-for>
+</div>
+</sc-if>
+<div class="btn-row btn-row-end mt">
+<button class="btn" type="button" onClick="{{ clearTerm }}">Clear</button>
+<button class="btn btn-def" type="button" onClick="{{ runCmd }}">{{ runLabel }}</button>
+</div>
+</div>
+</sc-if>
+<sc-if value="{{ termStamp }}" hint-placeholder-val="{{ false }}"><span class="stamp stamp-md tilt-b ink-green term-stamp">Logged</span></sc-if>
+</section>
+
+<section class="{{ w.worth.cls }}">
+<div class="tbar tc-1">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.star }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Sepadan?</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Sepadan" aria-expanded="{{ w.worth.open }}" onClick="{{ w.worth.toggle }}"></button>
+</div>
+<sc-if value="{{ w.worth.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody">
+<sc-if value="{{ sepadan.has }}" hint-placeholder-val="{{ true }}">
+<div class="wcard">
+<span class="{{ sepadan.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ sepadan.icon }}" fill="currentColor"></path></svg></span>
+<div class="grow"><span class="rname">{{ sepadan.title }}</span><span class="sub">{{ sepadan.sub }}</span></div>
+<span class="amt">{{ sepadan.amtText }}</span>
+<sc-if value="{{ sepadan.stampWorth }}" hint-placeholder-val="{{ false }}"><span class="stamp stamp-md tilt-e ink-green wstamp">Worth it</span></sc-if>
+<sc-if value="{{ sepadan.stampRegret }}" hint-placeholder-val="{{ false }}"><span class="stamp stamp-md tilt-a ink-red wstamp">Nyesel</span></sc-if>
+</div>
+<p class="wq">Was it worth it?</p>
+<div class="btn-row">
+<button class="btn btn-good" type="button" onClick="{{ sepadan.yes }}">Worth it</button>
+<button class="btn btn-bad" type="button" onClick="{{ sepadan.no }}">Nyesel</button>
+</div>
+<p class="note mt">{{ sepadan.progress }}</p>
+</sc-if>
+<sc-if value="{{ sepadan.done }}" hint-placeholder-val="{{ false }}"><p class="note">{{ sepadan.doneText }}</p></sc-if>
+</div>
+</sc-if>
+</section>
+
+<section class="{{ w.net.cls }}">
+<div class="tbar tc-2">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.cash }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Net Worth</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Net Worth" aria-expanded="{{ w.net.open }}" onClick="{{ w.net.toggle }}"></button>
+</div>
+<sc-if value="{{ w.net.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody">
+<p class="caps">Total across 4 accounts</p>
+<p class="hero">{{ worthText }}</p>
+<p class="up"><svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.arrowup }}" fill="currentColor"></path></svg><span>Rp 1,2 jt since 1 Sep</span></p>
+<div class="icons4">
+<sc-for list="{{ accounts }}" as="a" hint-placeholder-count="4">
+<button class="dicon" type="button" aria-label="{{ a.aria }}" onClick="{{ a.check }}">
+<span class="{{ a.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ a.icon }}" fill="currentColor"></path></svg></span>
+<span class="dlabel">{{ a.name }}</span>
+<span class="{{ a.balCls }}">{{ a.balText }}</span>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+</section>
+
+<section class="{{ w.month.cls }}">
+<div class="tbar tc-4">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.chart }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">September 2026</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand September" aria-expanded="{{ w.month.open }}" onClick="{{ w.month.toggle }}"></button>
+</div>
+<sc-if value="{{ w.month.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody">
+<div class="duo">
+<div class="lcd statbox"><span class="lcdcaps">Spent</span><span class="lcdnum">{{ spentShort }}</span></div>
+<div class="lcd statbox"><span class="lcdcaps">Income</span><span class="lcdnum">{{ incomeShort }}</span></div>
+</div>
+<p class="note pace">{{ paceText }}</p>
+</div>
+</sc-if>
+</section>
+
+<section class="{{ w.budget.cls }}">
+<div class="tbar tc-3">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.panel }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Budget</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Budget" aria-expanded="{{ w.budget.open }}" onClick="{{ w.budget.toggle }}"></button>
+</div>
+<sc-if value="{{ w.budget.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody stack">
+<sc-for list="{{ budgets }}" as="b" hint-placeholder-count="4">
+<div class="brow">
+<span class="bname">{{ b.label }}</span>
+<div class="sunk meter" role="img" aria-label="{{ b.aria }}">
+<sc-for list="{{ b.blocks }}" as="k" hint-placeholder-count="20"><span class="{{ k.cls }}"></span></sc-for>
+</div>
+<div class="bfoot"><span>{{ b.usedText }}</span><span class="{{ b.leftCls }}">{{ b.leftText }}</span></div>
+<sc-if value="{{ b.ok }}" hint-placeholder-val="{{ false }}"><span class="{{ b.stampCls }} ink-green">On track</span></sc-if>
+<sc-if value="{{ b.warn }}" hint-placeholder-val="{{ false }}"><span class="{{ b.stampCls }} ink-amber">Careful</span></sc-if>
+<sc-if value="{{ b.over }}" hint-placeholder-val="{{ false }}"><span class="{{ b.stampCls }} ink-red">Over</span></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</section>
+
+<section class="{{ w.bills.cls }}">
+<div class="tbar tc-1">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.hourglass }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Bills Due</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Bills Due" aria-expanded="{{ w.bills.open }}" onClick="{{ w.bills.toggle }}"></button>
+</div>
+<sc-if value="{{ w.bills.open }}" hint-placeholder-val="{{ true }}">
+<div class="wbody flush">
+<sc-for list="{{ bills }}" as="b" hint-placeholder-count="2">
+<div class="{{ b.rowCls }}">
+<span class="{{ b.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ b.icon }}" fill="currentColor"></path></svg></span>
+<div class="grow"><span class="rname">{{ b.name }}</span><span class="{{ b.dueCls }}">{{ b.due }}</span></div>
+<span class="amt">{{ b.amountText }}</span>
+<sc-if value="{{ b.unpaid }}" hint-placeholder-val="{{ true }}"><button class="btn" type="button" aria-label="{{ b.payLabel }}" onClick="{{ b.pay }}">Paid</button></sc-if>
+<sc-if value="{{ b.paid }}" hint-placeholder-val="{{ false }}"><span class="stamp stamp-md tilt-c ink-red">Paid</span></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</section>
+
+<section class="{{ w.recent.cls }}">
+<div class="tbar tc-5">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.activity }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Recent</h2>
+<span class="leader"></span>
+<span class="wctl"></span>
+<button class="thit" type="button" aria-label="Collapse or expand Recent" aria-expanded="{{ w.recent.open }}" onClick="{{ w.recent.toggle }}"></button>
+</div>
+<sc-if value="{{ w.recent.open }}" hint-placeholder-val="{{ true }}">
+<div class="lhead"><span>Name</span><span>Amount</span></div>
+<div>
+<sc-for list="{{ recent }}" as="t" hint-placeholder-count="5">
+<button class="{{ t.rowCls }}" type="button" aria-pressed="{{ t.sel }}" onClick="{{ t.pick }}">
+<span class="{{ t.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ t.icon }}" fill="currentColor"></path></svg></span>
+<span class="grow"><span class="rname">{{ t.name }}</span><span class="sub">{{ t.sub }}</span></span>
+<span class="{{ t.amtCls }}">{{ t.amtText }}</span>
+</button>
+</sc-for>
+</div>
+<button class="more-link" type="button" onClick="{{ goActivity }}">Show all activity</button>
+</sc-if>
+</section>
+
+</sc-if>
+
+<sc-if value="{{ isActivity }}" hint-placeholder-val="{{ false }}">
+<section class="win">
+<div class="tbar tc-4">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.activity }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Activity</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody">
+<label class="sunk search">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.search }}" fill="currentColor"></path></svg>
+<input class="sinput" type="search" placeholder="Search notes, categories, amounts" aria-label="Search transactions" value="{{ query }}" onChange="{{ onQuery }}">
+</label>
+<div class="tabs mt">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="3">
+<button class="{{ f.cls }}" type="button" aria-pressed="{{ f.on }}" onClick="{{ f.pick }}">{{ f.label }}</button>
+</sc-for>
+</div>
+</div>
+<div>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+<div class="dayhead"><span>{{ g.day }}</span><span>{{ g.netText }}</span></div>
+<sc-for list="{{ g.items }}" as="t" hint-placeholder-count="3">
+<button class="{{ t.rowCls }}" type="button" aria-pressed="{{ t.sel }}" onClick="{{ t.pick }}">
+<span class="{{ t.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ t.icon }}" fill="currentColor"></path></svg></span>
+<span class="grow"><span class="rname">{{ t.name }}</span><span class="sub">{{ t.sub }}</span></span>
+<span class="{{ t.amtCls }}">{{ t.amtText }}</span>
+</button>
+</sc-for>
+</sc-for>
+<sc-if value="{{ noResults }}" hint-placeholder-val="{{ false }}"><p class="empty">No matches. Try “kopi”, “grab” or an amount like 32000.</p></sc-if>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{ isInsights }}" hint-placeholder-val="{{ false }}">
+<section class="win">
+<div class="tbar tc-1">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.chart }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Where it went</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody">
+<div class="tabs" role="group" aria-label="Show money as">
+<sc-for list="{{ unitOpts }}" as="u" hint-placeholder-count="3"><button class="{{ u.cls }}" type="button" aria-pressed="{{ u.on }}" onClick="{{ u.pick }}">{{ u.label }}</button></sc-for>
+</div>
+<p class="note mt">{{ unitNote }}</p>
+<p class="caps mt">September 2026 · {{ spentUnitText }}</p>
+<div class="stack mt">
+<sc-for list="{{ slices }}" as="s" hint-placeholder-count="6">
+<div class="slice">
+<span class="{{ s.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ s.icon }}" fill="currentColor"></path></svg></span>
+<div class="grow">
+<div class="srow"><span class="rname">{{ s.name }}</span><span class="amt-sm">{{ s.amtText }}</span></div>
+<div class="sbar"><span class="sunk strack"><span class="sfill" style="width: {{ s.pct }}%"></span></span><span class="spct">{{ s.shareText }}</span></div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section class="win">
+<div class="tbar tc-4">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.cart }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Your Prices</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody">
+<p class="basket">{{ basketText }}</p>
+<p class="note">{{ basketNote }}</p>
+<div class="stack mt">
+<sc-for list="{{ prices }}" as="r" hint-placeholder-count="5">
+<div class="slice">
+<span class="{{ r.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ r.icon }}" fill="currentColor"></path></svg></span>
+<div class="grow"><span class="rname">{{ r.title }}</span><span class="sub">{{ r.range }}</span></div>
+<div class="spark" aria-hidden="true"><sc-for list="{{ r.bars }}" as="b" hint-placeholder-count="5"><i style="height: {{ b.h }}px"></i></sc-for></div>
+<span class="{{ r.pctCls }}">{{ r.pctText }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+<section class="win">
+<div class="tbar tc-3">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.hourglass }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Habit Time Machine</h2>
+<span class="leader"></span>
+</div>
+<div>
+<sc-for list="{{ habits }}" as="h" hint-placeholder-count="3">
+<button class="row" type="button" aria-expanded="{{ h.open }}" onClick="{{ h.toggle }}">
+<span class="{{ h.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ h.icon }}" fill="currentColor"></path></svg></span>
+<span class="grow"><span class="rname">{{ h.title }}</span><span class="sub">{{ h.sub }}</span></span>
+<span class="amt">{{ h.yearText }}</span>
+</button>
+<sc-if value="{{ h.open }}" hint-placeholder-val="{{ false }}">
+<div class="habit-x">
+<p class="hlabel">Per week: <strong>{{ h.freqText }}</strong></p>
+<input class="range" type="range" min="0" max="7" step="1" value="{{ h.freq }}" aria-label="{{ h.aria }}" onChange="{{ h.setFreq }}">
+<p class="hres">{{ h.result }}</p>
+<p class="note">{{ h.goal }}</p>
+</div>
+</sc-if>
+</sc-for>
+</div>
+</section>
+
+<section class="win">
+<div class="tbar tc-1">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.star }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Worth it?</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody">
+<div class="duo">
+<div class="lcd statbox"><span class="lcdcaps">Worth it</span><span class="lcdnum">{{ worthSumText }}</span></div>
+<div class="lcd statbox"><span class="lcdcaps">Nyesel</span><span class="lcdnum">{{ regretSumText }}</span></div>
+</div>
+<p class="note pace">{{ worthReportNote }}</p>
+</div>
+</section>
+
+<section class="win">
+<div class="tbar tc-2">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.chart }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Income vs Spending</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody">
+<div class="legend"><span class="sw inc"></span><span>Income</span><span class="sw-gap"></span><span class="sw exp"></span><span>Spending</span></div>
+<div class="chart" role="img" aria-label="{{ chartAria }}">
+<sc-for list="{{ ticks }}" as="k" hint-placeholder-count="3">
+<span class="gline" style="top: {{ k.y }}px"></span>
+<span class="glabel" style="top: {{ k.y }}px">{{ k.label }}</span>
+</sc-for>
+<sc-for list="{{ cols }}" as="c" hint-placeholder-count="6">
+<sc-if value="{{ c.sel }}" hint-placeholder-val="{{ false }}"><span class="selband" style="left: {{ c.bandX }}px; width: {{ c.bandW }}px"></span></sc-if>
+<span class="bar inc" style="left: {{ c.incX }}px; top: {{ c.incY }}px; height: {{ c.incH }}px"></span>
+<span class="bar exp" style="left: {{ c.expX }}px; top: {{ c.expY }}px; height: {{ c.expH }}px"></span>
+<span class="{{ c.labelCls }}" style="left: {{ c.labelX }}px">{{ c.m }}</span>
+<button class="colhit" type="button" style="left: {{ c.bandX }}px; width: {{ c.bandW }}px" aria-label="{{ c.aria }}" aria-pressed="{{ c.sel }}" onClick="{{ c.pick }}"></button>
+</sc-for>
+</div>
+<p class="sunk statusbar">{{ chartStatus }}</p>
+</div>
+</section>
+
+<section class="win">
+<div class="tbar tc-3">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.star }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Highlights</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody flush">
+<div class="kv"><span>Daily average</span><span class="amt-sm">{{ avgText }}</span></div>
+<div class="kv"><span>Biggest expense</span><span class="amt-sm">Kos Tebet · 3.500.000</span></div>
+<div class="kv"><span>Transactions</span><span class="amt-sm">{{ countText }}</span></div>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{ isMore }}" hint-placeholder-val="{{ false }}">
+<section class="win">
+<div class="tbar tc-5">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.panel }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Control Panels</h2>
+<span class="leader"></span>
+</div>
+<div class="wbody">
+<fieldset class="group">
+<legend>Theme</legend>
+<sc-for list="{{ themeOpts }}" as="o" hint-placeholder-count="3">
+<button class="opt" type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}"><span class="{{ o.radioCls }}"></span><span>{{ o.label }}</span><span class="opt-hint">{{ o.hint }}</span></button>
+</sc-for>
+</fieldset>
+<fieldset class="group">
+<legend>Colors</legend>
+<sc-for list="{{ paletteOpts }}" as="o" hint-placeholder-count="3">
+<button class="opt" type="button" role="radio" aria-checked="{{ o.on }}" aria-label="{{ o.aria }}" onClick="{{ o.pick }}"><span class="{{ o.radioCls }}"></span><span>{{ o.label }}</span><span class="{{ o.stripCls }}"></span></button>
+</sc-for>
+<button class="opt" type="button" role="checkbox" aria-checked="{{ texture }}" onClick="{{ toggleTexture }}">
+<span class="checkb"><sc-if value="{{ texture }}" hint-placeholder-val="{{ true }}"><svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.check }}" fill="currentColor"></path></svg></sc-if></span>
+<span>Desktop dots</span><span class="opt-hint">subtle texture</span>
+</button>
+</fieldset>
+<fieldset class="group">
+<legend>Payday</legend>
+<sc-for list="{{ paydayOpts }}" as="o" hint-placeholder-count="3">
+<button class="opt" type="button" role="radio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}"><span class="{{ o.radioCls }}"></span><span>{{ o.label }}</span><span class="opt-hint">{{ o.hint }}</span></button>
+</sc-for>
+<p class="note">Tanggal Tua counts down to this day.</p>
+</fieldset>
+<fieldset class="group">
+<legend>Security</legend>
+<button class="opt" type="button" role="checkbox" aria-checked="{{ faceId }}" onClick="{{ toggleFace }}">
+<span class="checkb"><sc-if value="{{ faceId }}" hint-placeholder-val="{{ true }}"><svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.check }}" fill="currentColor"></path></svg></sc-if></span>
+<span>Require Face ID to open</span>
+</button>
+<p class="note">Your 6-digit PIN always works as a backup.</p>
+</fieldset>
+<fieldset class="group">
+<legend>Sync</legend>
+<p class="note">Not connected. Everything stays on this iPhone.</p>
+<div class="btn-row mt"><button class="btn" type="button" onClick="{{ openConnect }}">Connect…</button></div>
+</fieldset>
+<fieldset class="group">
+<legend>Data</legend>
+<div class="btn-row"><button class="btn" type="button" onClick="{{ openExport }}">Export CSV…</button><button class="btn" type="button" onClick="{{ openErase }}">Erase…</button></div>
+</fieldset>
+</div>
+</section>
+</sc-if>
+
+</main>
+
+<nav class="taskbar" aria-label="Main">
+<button class="{{ tb.home }}" type="button" aria-current="{{ cur.home }}" onClick="{{ goHome }}">
+<svg class="px ti-1" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.home }}" fill="currentColor"></path></svg><span>Home</span>
+</button>
+<button class="{{ tb.activity }}" type="button" aria-current="{{ cur.activity }}" onClick="{{ goActivity }}">
+<svg class="px ti-2" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.activity }}" fill="currentColor"></path></svg><span>Activity</span>
+</button>
+<button class="tb tb-new" type="button" aria-label="New expense" onClick="{{ newExpense }}">
+<svg class="px" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.plus }}" fill="currentColor"></path></svg><span>New</span>
+</button>
+<button class="{{ tb.insights }}" type="button" aria-current="{{ cur.insights }}" onClick="{{ goInsights }}">
+<svg class="px ti-3" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.chart }}" fill="currentColor"></path></svg><span>Insights</span>
+</button>
+<button class="{{ tb.more }}" type="button" aria-current="{{ cur.more }}" onClick="{{ goMore }}">
+<svg class="px ti-4" width="24" height="24" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.panel }}" fill="currentColor"></path></svg><span>More</span>
+</button>
+</nav>
+
+<sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+<button class="scrim" type="button" aria-label="Close menu" onClick="{{ closeMenus }}"></button>
+</sc-if>
+<sc-if value="{{ menuFile }}" hint-placeholder-val="{{ false }}">
+<div class="dd dd-file" role="menu" aria-label="File">
+<button class="mi" type="button" role="menuitem" onClick="{{ newExpense }}"><span class="chk"></span><span>New Expense</span></button>
+<button class="mi" type="button" role="menuitem" onClick="{{ newIncome }}"><span class="chk"></span><span>New Income</span></button>
+<button class="mi" type="button" role="menuitem" onClick="{{ newTransfer }}"><span class="chk"></span><span>New Transfer</span></button>
+<div class="msep"></div>
+<button class="mi" type="button" role="menuitem" onClick="{{ openBalanceDefault }}"><span class="chk"></span><span>Balance Check…</span></button>
+<button class="mi" type="button" role="menuitem" onClick="{{ simulatePayday }}"><span class="chk"></span><span>Simulate Payday</span></button>
+<div class="msep"></div>
+<button class="mi" type="button" role="menuitem" onClick="{{ openExport }}"><span class="chk"></span><span>Export CSV…</span></button>
+</div>
+</sc-if>
+<sc-if value="{{ menuView }}" hint-placeholder-val="{{ false }}">
+<div class="dd dd-view" role="menu" aria-label="View">
+<button class="mi" type="button" role="menuitem" onClick="{{ goHome }}"><span class="chk"></span><span>Overview</span></button>
+<button class="mi" type="button" role="menuitem" onClick="{{ goActivity }}"><span class="chk"></span><span>Activity</span></button>
+<button class="mi" type="button" role="menuitem" onClick="{{ goInsights }}"><span class="chk"></span><span>Insights</span></button>
+<button class="mi" type="button" role="menuitem" onClick="{{ goMore }}"><span class="chk"></span><span>Control Panels</span></button>
+<div class="msep"></div>
+<sc-for list="{{ themeOpts }}" as="o" hint-placeholder-count="3">
+<button class="mi" type="button" role="menuitemradio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}">
+<span class="chk"><sc-if value="{{ o.on }}" hint-placeholder-val="{{ false }}"><svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.check }}" fill="currentColor"></path></svg></sc-if></span>
+<span>{{ o.label }}</span>
+</button>
+</sc-for>
+<div class="msep"></div>
+<sc-for list="{{ paletteOpts }}" as="o" hint-placeholder-count="3">
+<button class="mi" type="button" role="menuitemradio" aria-checked="{{ o.on }}" onClick="{{ o.pick }}">
+<span class="chk"><sc-if value="{{ o.on }}" hint-placeholder-val="{{ false }}"><svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.check }}" fill="currentColor"></path></svg></sc-if></span>
+<span>{{ o.label }} colors</span>
+<span class="{{ o.stripCls }}"></span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+
+<sc-if value="{{ zoomOpen }}" hint-placeholder-val="{{ false }}">
+<span class="zr zr-open"></span><span class="zr zr-open zr-1"></span><span class="zr zr-open zr-2"></span><span class="zr zr-open zr-3"></span>
+</sc-if>
+<sc-if value="{{ zoomClose }}" hint-placeholder-val="{{ false }}">
+<span class="zr zr-close"></span><span class="zr zr-close zr-1"></span><span class="zr zr-close zr-2"></span><span class="zr zr-close zr-3"></span>
+</sc-if>
+
+<sc-if value="{{ compShown }}" hint-placeholder-val="{{ false }}">
+<div class="modal-scrim"></div>
+<section class="{{ compCls }}" role="dialog" aria-modal="true" aria-label="{{ compTitle }}">
+<div class="tbar tc-acc">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.plus }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">{{ compTitle }}</h2>
+<span class="leader"></span>
+<button class="xbtn" type="button" aria-label="Close without saving" onClick="{{ closeComposer }}"><span class="xbox">x</span></button>
+</div>
+<div class="cbody">
+<div class="tabs">
+<sc-for list="{{ ctypes }}" as="c" hint-placeholder-count="3">
+<button class="{{ c.cls }}" type="button" aria-pressed="{{ c.on }}" onClick="{{ c.pick }}">{{ c.label }}</button>
+</sc-for>
+</div>
+<div class="lcd biglcd" aria-live="polite">
+<span class="lcdcaps">{{ ctypeLabel }}</span>
+<span class="lcd-ghost">888.888.888</span>
+<span class="lcdamt">Rp {{ amountText }}</span>
+</div>
+<label class="sunk field">
+<span class="fcap">Title</span>
+<input class="finput" type="text" placeholder="{{ titlePlaceholder }}" aria-label="Title, for example Mie Ayam" value="{{ title }}" onChange="{{ onTitle }}">
+<sc-if value="{{ hasTitle }}" hint-placeholder-val="{{ false }}"><button class="fclear" type="button" aria-label="Clear title" onClick="{{ clearTitle }}"><span class="fclear-box">x</span></button></sc-if>
+</label>
+<sc-if value="{{ hasSugg }}" hint-placeholder-val="{{ true }}">
+<div class="chips" role="group" aria-label="Suggested titles">
+<span class="chipcap">{{ suggCap }}</span>
+<sc-for list="{{ sugg }}" as="g" hint-placeholder-count="4">
+<button class="chip" type="button" aria-label="{{ g.aria }}" onClick="{{ g.pick }}"><span class="{{ g.dotCls }}"></span><span>{{ g.label }}</span></button>
+</sc-for>
+</div>
+</sc-if>
+<sc-if value="{{ isTransfer }}" hint-placeholder-val="{{ false }}">
+<div class="xfer">
+<button class="popup" type="button" onClick="{{ cycleFrom }}"><span>From: {{ fromName }}</span><span class="tri"></span></button>
+<button class="popup" type="button" onClick="{{ cycleTo }}"><span>To: {{ toName }}</span><span class="tri"></span></button>
+<p class="note">Transfers move money between your own accounts, so they don’t count as spending.</p>
+</div>
+</sc-if>
+<sc-if value="{{ notTransfer }}" hint-placeholder-val="{{ true }}">
+<div class="cats" role="group" aria-label="Category">
+<sc-for list="{{ cats }}" as="c" hint-placeholder-count="12">
+<button class="{{ c.cls }}" type="button" aria-pressed="{{ c.on }}" onClick="{{ c.pick }}">
+<span class="{{ c.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ c.icon }}" fill="currentColor"></path></svg></span>
+<span class="lbl">{{ c.name }}</span>
+</button>
+</sc-for>
+</div>
+</sc-if>
+<div class="pops">
+<sc-if value="{{ notTransfer }}" hint-placeholder-val="{{ true }}"><button class="popup" type="button" onClick="{{ cycleAcct }}"><span>{{ acctName }}</span><span class="tri"></span></button></sc-if>
+<button class="popup" type="button" onClick="{{ cycleDay }}"><span>{{ dayName }}</span><span class="tri"></span></button>
+</div>
+<div class="keys" role="group" aria-label="Amount keypad">
+<sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+<button class="{{ k.cls }}" type="button" aria-label="{{ k.aria }}" onClick="{{ k.press }}">{{ k.label }}</button>
+</sc-for>
+</div>
+<div class="cfoot">
+<p class="{{ statusCls }}">{{ statusText }}</p>
+<button class="btn" type="button" onClick="{{ closeComposer }}">Cancel</button>
+<button class="btn btn-def" type="button" onClick="{{ save }}">Save</button>
+</div>
+</div>
+<sc-if value="{{ stamping }}" hint-placeholder-val="{{ false }}"><span class="stamp stamp-lg tilt-d ink-red saved">Saved</span></sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{ bcShown }}" hint-placeholder-val="{{ false }}">
+<div class="modal-scrim"></div>
+<section class="win modalwin" role="dialog" aria-modal="true" aria-label="Balance check">
+<div class="tbar tc-4">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.search }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Balance Check</h2>
+<span class="leader"></span>
+<button class="xbtn" type="button" aria-label="Close balance check" onClick="{{ closeBalance }}"><span class="xbox">x</span></button>
+</div>
+<div class="cbody">
+<div class="tabs">
+<sc-for list="{{ bcTabs }}" as="t" hint-placeholder-count="4"><button class="{{ t.cls }}" type="button" aria-pressed="{{ t.on }}" onClick="{{ t.pick }}">{{ t.label }}</button></sc-for>
+</div>
+<sc-if value="{{ bcShowIntro }}" hint-placeholder-val="{{ true }}"><p class="note">{{ bcIntro }}</p></sc-if>
+<div class="lcd biglcd" aria-live="polite">
+<span class="lcdcaps">{{ bcCaps }}</span>
+<span class="lcd-ghost">888.888.888</span>
+<span class="lcdamt">Rp {{ bcAmountText }}</span>
+</div>
+<p class="bc-compare">{{ bcCompare }}</p>
+<div class="bc-result">
+<sc-if value="{{ bcBalanced }}" hint-placeholder-val="{{ false }}">
+<p class="note">Everything matches. Nice bookkeeping!</p>
+<span class="stamp stamp-lg tilt-e ink-green bc-stamp">Balanced</span>
+</sc-if>
+<sc-if value="{{ bcMissing }}" hint-placeholder-val="{{ false }}">
+<p class="bc-gap">{{ bcGapText }}</p>
+<sc-if value="{{ bcHasCombo }}" hint-placeholder-val="{{ true }}">
+<div class="sunk combo">
+<p class="combo-t">{{ bcComboText }}</p>
+<button class="btn btn-def" type="button" onClick="{{ bcLogCombo }}">{{ bcComboBtn }}</button>
+</div>
+</sc-if>
+<p class="caps">Or tap what it was</p>
+<div class="chips wrap">
+<sc-for list="{{ bcSugg }}" as="g" hint-placeholder-count="4"><button class="chip" type="button" aria-label="{{ g.aria }}" onClick="{{ g.pick }}"><span class="{{ g.dotCls }}"></span><span>{{ g.label }}</span></button></sc-for>
+<button class="chip" type="button" onClick="{{ bcLogRest }}"><span>Rest as Other · {{ bcGapShort }}</span></button>
+</div>
+</sc-if>
+<sc-if value="{{ bcExtra }}" hint-placeholder-val="{{ false }}">
+<p class="bc-gap">{{ bcGapText }}</p>
+<div class="btn-row"><button class="btn" type="button" onClick="{{ bcLogTopup }}">{{ bcTopupLabel }}</button><button class="btn" type="button" onClick="{{ bcLogIncome }}">Log as income</button></div>
+</sc-if>
+</div>
+<div class="keys" role="group" aria-label="Balance keypad">
+<sc-for list="{{ bkeys }}" as="k" hint-placeholder-count="12"><button class="{{ k.cls }}" type="button" aria-label="{{ k.aria }}" onClick="{{ k.press }}">{{ k.label }}</button></sc-for>
+</div>
+<div class="cfoot"><p class="cstatus">{{ bcFoot }}</p><button class="btn btn-def" type="button" onClick="{{ closeBalance }}">Done</button></div>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{ boot }}" hint-placeholder-val="{{ false }}">
+<div class="boot" role="status" aria-label="Payday. Refilling your battery.">
+<svg class="px" width="64" height="64" viewBox="0 0 16 16" aria-hidden="true"><path class="logo-d" d="{{ ic.logo }}"></path><path class="logo-c" d="{{ ic.coin }}"></path></svg>
+<p class="boot-title">DUIT OS</p>
+<p class="boot-sub">PAYDAY!</p>
+<div class="boot-bar"><span class="boot-fill"></span></div>
+<p class="boot-line bl-1">Salary received ... Rp 16.500.000</p>
+<p class="boot-line bl-2">Refilling battery ... OK</p>
+<p class="boot-line bl-3">Opening Payday Split ...</p>
+</div>
+</sc-if>
+
+<sc-if value="{{ splitShown }}" hint-placeholder-val="{{ false }}">
+<div class="modal-scrim"></div>
+<section class="{{ splitCls }}" role="dialog" aria-modal="true" aria-label="Payday split">
+<div class="tbar tc-2">
+<svg class="px" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ ic.briefcase }}" fill="currentColor"></path></svg>
+<h2 class="wtitle">Payday Split</h2>
+<span class="leader"></span>
+<button class="xbtn" type="button" aria-label="Close payday split" onClick="{{ closeSplit }}"><span class="xbox">x</span></button>
+</div>
+<div class="wbody">
+<div class="lcd statbox"><span class="lcdcaps">{{ salaryCaps }}</span><span class="lcdnum">Rp 16.500.000</span></div>
+<p class="note mt">Give every rupiah a job. Whatever is left becomes your spending money and refills the battery.</p>
+<div class="stack mt">
+<sc-for list="{{ splitRows }}" as="r" hint-placeholder-count="4">
+<div class="splitrow">
+<span class="{{ r.tileCls }}"><svg class="px" width="32" height="32" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ r.icon }}" fill="currentColor"></path></svg></span>
+<div class="grow"><span class="rname">{{ r.label }}</span><span class="sub">{{ r.amtText }}</span></div>
+<button class="btn btn-sq" type="button" aria-label="{{ r.decAria }}" onClick="{{ r.dec }}">-</button>
+<button class="btn btn-sq" type="button" aria-label="{{ r.incAria }}" onClick="{{ r.inc }}">+</button>
+</div>
+</sc-for>
+</div>
+<div class="sunk spendbox mt">
+<span class="caps">Spending money</span>
+<span class="{{ spendCls }}">{{ spendText }}</span>
+<span class="note">{{ spendPerDay }}</span>
+</div>
+<div class="btn-row btn-row-end mt">
+<button class="btn" type="button" onClick="{{ closeSplit }}">Later</button>
+<button class="btn btn-def" type="button" onClick="{{ confirmSplit }}">Split it!</button>
+</div>
+</div>
+<sc-if value="{{ splitStamp }}" hint-placeholder-val="{{ false }}"><span class="stamp stamp-lg tilt-a ink-green split-stamp">Allocated</span></sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{ alertShown }}" hint-placeholder-val="{{ false }}">
+<div class="modal-scrim"></div>
+<section class="alert" role="alertdialog" aria-modal="true" aria-label="{{ alertTitle }}">
+<div class="alert-body">
+<svg class="px" width="48" height="48" viewBox="0 0 16 16" aria-hidden="true"><path d="{{ alertIcon }}" fill="currentColor"></path></svg>
+<div class="grow"><p class="atitle">{{ alertTitle }}</p><p class="note">{{ alertBody }}</p></div>
+</div>
+<div class="alert-foot btn-row btn-row-end">
+<sc-if value="{{ alertConfirm }}" hint-placeholder-val="{{ false }}">
+<button class="btn" type="button" onClick="{{ confirmErase }}">Erase</button>
+<button class="btn btn-def" type="button" onClick="{{ closeAlert }}">Cancel</button>
+</sc-if>
+<sc-if value="{{ alertInfo }}" hint-placeholder-val="{{ true }}">
+<button class="btn btn-def" type="button" onClick="{{ closeAlert }}">OK</button>
+</sc-if>
+</div>
+</section>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["auto","day","night"],"default":"auto","section":"Look"},"palette":{"editor":"enum","options":["candy","arcade","sunset"],"default":"candy","section":"Look"},"accent":{"editor":"enum","options":["cobalt","berry","teal","grape"],"default":"cobalt","section":"Look"},"texture":{"editor":"boolean","default":true,"section":"Look"},"$preview":{"width":390,"height":844}}'>
+const ICONS = {"home":"M7 1h2v1h-2zM6 2h4v1h-4zM5 3h2v1h-2zM9 3h2v1h-2zM4 4h2v1h-2zM10 4h2v1h-2zM3 5h2v1h-2zM11 5h2v1h-2zM2 6h2v1h-2zM12 6h2v1h-2zM1 7h2v1h-2zM13 7h2v1h-2zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM5 9h6v1h-6zM13 9h1v1h-1zM2 10h1v1h-1zM5 10h1v1h-1zM10 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM13 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM9 12h2v1h-2zM13 12h1v1h-1zM2 13h1v1h-1zM5 13h1v1h-1zM10 13h1v1h-1zM13 13h1v1h-1zM2 14h12v1h-12z","activity":"M2 1h11v1h-11zM2 2h1v1h-1zM12 2h1v1h-1zM2 3h1v1h-1zM4 3h2v1h-2zM7 3h4v1h-4zM12 3h1v1h-1zM2 4h1v1h-1zM12 4h1v1h-1zM2 5h1v1h-1zM4 5h2v1h-2zM7 5h4v1h-4zM12 5h1v1h-1zM2 6h1v1h-1zM12 6h1v1h-1zM2 7h1v1h-1zM4 7h2v1h-2zM7 7h4v1h-4zM12 7h1v1h-1zM2 8h1v1h-1zM12 8h1v1h-1zM2 9h1v1h-1zM4 9h2v1h-2zM7 9h2v1h-2zM12 9h1v1h-1zM2 10h1v1h-1zM12 10h1v1h-1zM2 11h1v1h-1zM12 11h1v1h-1zM2 12h1v1h-1zM4 12h1v1h-1zM6 12h1v1h-1zM8 12h1v1h-1zM10 12h1v1h-1zM12 12h1v1h-1zM3 13h1v1h-1zM5 13h1v1h-1zM7 13h1v1h-1zM9 13h1v1h-1zM11 13h1v1h-1z","chart":"M10 2h3v1h-3zM10 3h1v1h-1zM12 3h1v1h-1zM10 4h1v1h-1zM12 4h1v1h-1zM6 5h3v1h-3zM10 5h1v1h-1zM12 5h1v1h-1zM6 6h1v1h-1zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM6 7h1v1h-1zM8 7h1v1h-1zM10 7h1v1h-1zM12 7h1v1h-1zM2 8h3v1h-3zM6 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h1v1h-1zM2 9h1v1h-1zM4 9h1v1h-1zM6 9h1v1h-1zM8 9h1v1h-1zM10 9h1v1h-1zM12 9h1v1h-1zM2 10h1v1h-1zM4 10h1v1h-1zM6 10h1v1h-1zM8 10h1v1h-1zM10 10h1v1h-1zM12 10h1v1h-1zM2 11h1v1h-1zM4 11h1v1h-1zM6 11h1v1h-1zM8 11h1v1h-1zM10 11h1v1h-1zM12 11h1v1h-1zM1 12h13v1h-13z","panel":"M3 2h1v1h-1zM9 2h1v1h-1zM13 2h1v1h-1zM3 3h1v1h-1zM9 3h1v1h-1zM13 3h1v1h-1zM2 4h3v1h-3zM9 4h1v1h-1zM13 4h1v1h-1zM2 5h1v1h-1zM4 5h1v1h-1zM9 5h1v1h-1zM13 5h1v1h-1zM2 6h3v1h-3zM9 6h1v1h-1zM12 6h3v1h-3zM3 7h1v1h-1zM8 7h3v1h-3zM12 7h1v1h-1zM14 7h1v1h-1zM3 8h1v1h-1zM8 8h1v1h-1zM10 8h1v1h-1zM12 8h3v1h-3zM3 9h1v1h-1zM8 9h3v1h-3zM13 9h1v1h-1zM3 10h1v1h-1zM9 10h1v1h-1zM13 10h1v1h-1zM3 11h1v1h-1zM9 11h1v1h-1zM13 11h1v1h-1zM3 12h1v1h-1zM9 12h1v1h-1zM13 12h1v1h-1z","plus":"M6 2h3v1h-3zM6 3h3v1h-3zM6 4h3v1h-3zM6 5h3v1h-3zM1 6h13v1h-13zM1 7h13v1h-13zM1 8h13v1h-13zM6 9h3v1h-3zM6 10h3v1h-3zM6 11h3v1h-3zM6 12h3v1h-3z","cloud":"M6 3h4v1h-4zM5 4h1v1h-1zM10 4h1v1h-1zM3 5h3v1h-3zM11 5h1v1h-1zM2 6h1v1h-1zM12 6h2v1h-2zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM2 10h12v1h-12z","cash":"M1 3h14v1h-14zM1 4h1v1h-1zM14 4h1v1h-1zM1 5h1v1h-1zM3 5h2v1h-2zM11 5h2v1h-2zM14 5h1v1h-1zM1 6h1v1h-1zM6 6h4v1h-4zM14 6h1v1h-1zM1 7h1v1h-1zM5 7h2v1h-2zM9 7h2v1h-2zM14 7h1v1h-1zM1 8h1v1h-1zM5 8h2v1h-2zM9 8h2v1h-2zM14 8h1v1h-1zM1 9h1v1h-1zM6 9h4v1h-4zM14 9h1v1h-1zM1 10h1v1h-1zM3 10h2v1h-2zM11 10h2v1h-2zM14 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM1 12h14v1h-14z","bank":"M7 1h2v1h-2zM5 2h2v1h-2zM9 2h2v1h-2zM3 3h2v1h-2zM11 3h2v1h-2zM1 4h14v1h-14zM2 6h2v1h-2zM7 6h2v1h-2zM12 6h2v1h-2zM2 7h2v1h-2zM7 7h2v1h-2zM12 7h2v1h-2zM2 8h2v1h-2zM7 8h2v1h-2zM12 8h2v1h-2zM2 9h2v1h-2zM7 9h2v1h-2zM12 9h2v1h-2zM2 10h2v1h-2zM7 10h2v1h-2zM12 10h2v1h-2zM1 12h14v1h-14zM1 13h14v1h-14z","phone":"M5 1h6v1h-6zM4 2h1v1h-1zM11 2h1v1h-1zM4 3h1v1h-1zM6 3h4v1h-4zM11 3h1v1h-1zM4 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM11 4h1v1h-1zM4 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM11 5h1v1h-1zM4 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM11 6h1v1h-1zM4 7h1v1h-1zM6 7h1v1h-1zM9 7h1v1h-1zM11 7h1v1h-1zM4 8h1v1h-1zM6 8h4v1h-4zM11 8h1v1h-1zM4 9h1v1h-1zM11 9h1v1h-1zM4 10h1v1h-1zM7 10h2v1h-2zM11 10h1v1h-1zM4 11h1v1h-1zM11 11h1v1h-1zM5 12h6v1h-6z","card":"M1 3h14v1h-14zM0 4h1v1h-1zM15 4h1v1h-1zM0 5h16v1h-16zM0 6h16v1h-16zM0 7h1v1h-1zM15 7h1v1h-1zM0 8h1v1h-1zM15 8h1v1h-1zM0 9h1v1h-1zM2 9h4v1h-4zM10 9h2v1h-2zM15 9h1v1h-1zM0 10h1v1h-1zM15 10h1v1h-1zM1 11h14v1h-14z","food":"M11 1h1v1h-1zM10 2h1v1h-1zM9 3h1v1h-1zM12 3h1v1h-1zM8 4h1v1h-1zM11 4h1v1h-1zM7 5h1v1h-1zM10 5h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM1 8h14v1h-14zM1 9h1v1h-1zM14 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM13 11h1v1h-1zM3 12h1v1h-1zM12 12h1v1h-1zM4 13h8v1h-8z","coffee":"M4 1h1v1h-1zM7 1h1v1h-1zM10 1h1v1h-1zM3 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM4 3h1v1h-1zM7 3h1v1h-1zM10 3h1v1h-1zM3 4h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM1 6h10v1h-10zM1 7h1v1h-1zM10 7h3v1h-3zM1 8h1v1h-1zM10 8h1v1h-1zM13 8h1v1h-1zM1 9h1v1h-1zM10 9h1v1h-1zM13 9h1v1h-1zM1 10h1v1h-1zM10 10h3v1h-3zM2 11h1v1h-1zM9 11h1v1h-1zM3 12h6v1h-6zM1 13h12v1h-12z","cart":"M1 1h2v1h-2zM2 2h1v1h-1zM2 3h13v1h-13zM2 4h1v1h-1zM5 4h1v1h-1zM9 4h1v1h-1zM13 4h1v1h-1zM3 5h1v1h-1zM5 5h1v1h-1zM9 5h1v1h-1zM13 5h1v1h-1zM3 6h1v1h-1zM5 6h1v1h-1zM9 6h1v1h-1zM12 6h1v1h-1zM4 7h9v1h-9zM4 8h1v1h-1zM4 9h10v1h-10zM5 10h2v1h-2zM11 10h2v1h-2zM5 11h2v1h-2zM11 11h2v1h-2z","car":"M4 3h8v1h-8zM3 4h1v1h-1zM7 4h2v1h-2zM12 4h1v1h-1zM2 5h1v1h-1zM7 5h2v1h-2zM13 5h1v1h-1zM1 6h14v1h-14zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM3 8h2v1h-2zM11 8h2v1h-2zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM1 10h14v1h-14zM2 11h3v1h-3zM11 11h3v1h-3zM2 12h3v1h-3zM11 12h3v1h-3z","building":"M3 1h10v1h-10zM3 2h1v1h-1zM12 2h1v1h-1zM3 3h1v1h-1zM5 3h2v1h-2zM9 3h2v1h-2zM12 3h1v1h-1zM3 4h1v1h-1zM5 4h2v1h-2zM9 4h2v1h-2zM12 4h1v1h-1zM3 5h1v1h-1zM12 5h1v1h-1zM3 6h1v1h-1zM5 6h2v1h-2zM9 6h2v1h-2zM12 6h1v1h-1zM3 7h1v1h-1zM5 7h2v1h-2zM9 7h2v1h-2zM12 7h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM3 9h1v1h-1zM5 9h2v1h-2zM9 9h2v1h-2zM12 9h1v1h-1zM3 10h1v1h-1zM12 10h1v1h-1zM3 11h1v1h-1zM7 11h2v1h-2zM12 11h1v1h-1zM3 12h1v1h-1zM7 12h2v1h-2zM12 12h1v1h-1zM1 13h14v1h-14z","bulb":"M5 1h6v1h-6zM4 2h1v1h-1zM11 2h1v1h-1zM3 3h1v1h-1zM12 3h1v1h-1zM3 4h1v1h-1zM7 4h2v1h-2zM12 4h1v1h-1zM3 5h1v1h-1zM6 5h1v1h-1zM9 5h1v1h-1zM12 5h1v1h-1zM3 6h1v1h-1zM6 6h1v1h-1zM9 6h1v1h-1zM12 6h1v1h-1zM4 7h1v1h-1zM7 7h2v1h-2zM11 7h1v1h-1zM5 8h1v1h-1zM10 8h1v1h-1zM5 9h6v1h-6zM5 10h1v1h-1zM10 10h1v1h-1zM5 11h6v1h-6zM7 12h2v1h-2z","tv":"M5 1h1v1h-1zM10 1h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM7 3h2v1h-2zM1 4h14v1h-14zM1 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM3 6h10v1h-10zM14 6h1v1h-1zM1 7h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM3 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM3 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM3 10h10v1h-10zM14 10h1v1h-1zM1 11h1v1h-1zM14 11h1v1h-1zM1 12h14v1h-14zM3 13h2v1h-2zM11 13h2v1h-2z","bag":"M6 1h4v1h-4zM5 2h1v1h-1zM10 2h1v1h-1zM5 3h1v1h-1zM10 3h1v1h-1zM2 4h12v1h-12zM2 5h1v1h-1zM13 5h1v1h-1zM2 6h1v1h-1zM5 6h1v1h-1zM10 6h1v1h-1zM13 6h1v1h-1zM2 7h1v1h-1zM13 7h1v1h-1zM2 8h1v1h-1zM13 8h1v1h-1zM2 9h1v1h-1zM13 9h1v1h-1zM2 10h1v1h-1zM13 10h1v1h-1zM2 11h1v1h-1zM13 11h1v1h-1zM2 12h12v1h-12z","star":"M7 1h2v1h-2zM7 2h2v1h-2zM6 3h1v1h-1zM9 3h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM1 5h5v1h-5zM10 5h5v1h-5zM2 6h1v1h-1zM13 6h1v1h-1zM3 7h1v1h-1zM12 7h1v1h-1zM4 8h1v1h-1zM11 8h1v1h-1zM4 9h1v1h-1zM11 9h1v1h-1zM3 10h1v1h-1zM7 10h2v1h-2zM12 10h1v1h-1zM3 11h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM12 11h1v1h-1zM2 12h1v1h-1zM4 12h2v1h-2zM10 12h2v1h-2zM13 12h1v1h-1zM2 13h2v1h-2zM12 13h2v1h-2z","cross":"M6 1h4v1h-4zM6 2h1v1h-1zM9 2h1v1h-1zM6 3h1v1h-1zM9 3h1v1h-1zM6 4h1v1h-1zM9 4h1v1h-1zM1 5h6v1h-6zM9 5h6v1h-6zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM14 7h1v1h-1zM1 8h6v1h-6zM9 8h6v1h-6zM6 9h1v1h-1zM9 9h1v1h-1zM6 10h1v1h-1zM9 10h1v1h-1zM6 11h1v1h-1zM9 11h1v1h-1zM6 12h4v1h-4z","book":"M1 2h6v1h-6zM9 2h6v1h-6zM1 3h1v1h-1zM7 3h2v1h-2zM14 3h1v1h-1zM1 4h1v1h-1zM3 4h3v1h-3zM7 4h2v1h-2zM10 4h3v1h-3zM14 4h1v1h-1zM1 5h1v1h-1zM7 5h2v1h-2zM14 5h1v1h-1zM1 6h1v1h-1zM3 6h3v1h-3zM7 6h2v1h-2zM10 6h3v1h-3zM14 6h1v1h-1zM1 7h1v1h-1zM7 7h2v1h-2zM14 7h1v1h-1zM1 8h1v1h-1zM3 8h3v1h-3zM7 8h2v1h-2zM10 8h3v1h-3zM14 8h1v1h-1zM1 9h1v1h-1zM7 9h2v1h-2zM14 9h1v1h-1zM1 10h6v1h-6zM9 10h6v1h-6zM7 11h2v1h-2z","gift":"M4 1h2v1h-2zM10 1h2v1h-2zM3 2h1v1h-1zM6 2h1v1h-1zM9 2h1v1h-1zM12 2h1v1h-1zM4 3h1v1h-1zM7 3h2v1h-2zM11 3h1v1h-1zM1 4h14v1h-14zM1 5h1v1h-1zM7 5h2v1h-2zM14 5h1v1h-1zM1 6h14v1h-14zM2 7h1v1h-1zM7 7h2v1h-2zM13 7h1v1h-1zM2 8h1v1h-1zM7 8h2v1h-2zM13 8h1v1h-1zM2 9h1v1h-1zM7 9h2v1h-2zM13 9h1v1h-1zM2 10h1v1h-1zM7 10h2v1h-2zM13 10h1v1h-1zM2 11h1v1h-1zM7 11h2v1h-2zM13 11h1v1h-1zM2 12h12v1h-12z","plane":"M7 1h2v1h-2zM7 2h2v1h-2zM6 3h4v1h-4zM5 4h6v1h-6zM3 5h10v1h-10zM1 6h14v1h-14zM1 7h2v1h-2zM6 7h4v1h-4zM13 7h2v1h-2zM7 8h2v1h-2zM7 9h2v1h-2zM6 10h4v1h-4zM5 11h2v1h-2zM9 11h2v1h-2z","box":"M3 2h10v1h-10zM2 3h1v1h-1zM12 3h2v1h-2zM1 4h12v1h-12zM14 4h1v1h-1zM1 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM5 6h4v1h-4zM12 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM12 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM12 8h1v1h-1zM14 8h1v1h-1zM1 9h1v1h-1zM12 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM12 10h2v1h-2zM1 11h12v1h-12z","briefcase":"M6 2h4v1h-4zM5 3h1v1h-1zM10 3h1v1h-1zM1 4h14v1h-14zM1 5h1v1h-1zM14 5h1v1h-1zM1 6h1v1h-1zM14 6h1v1h-1zM1 7h6v1h-6zM9 7h6v1h-6zM1 8h1v1h-1zM6 8h4v1h-4zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM1 10h1v1h-1zM14 10h1v1h-1zM1 11h14v1h-14z","family":"M3 1h2v1h-2zM11 1h2v1h-2zM2 2h4v1h-4zM10 2h4v1h-4zM2 3h4v1h-4zM10 3h4v1h-4zM3 4h2v1h-2zM11 4h2v1h-2zM2 6h4v1h-4zM10 6h4v1h-4zM1 7h6v1h-6zM9 7h6v1h-6zM1 8h6v1h-6zM9 8h6v1h-6zM1 9h6v1h-6zM9 9h6v1h-6zM2 10h4v1h-4zM10 10h4v1h-4zM2 11h1v1h-1zM5 11h1v1h-1zM10 11h1v1h-1zM13 11h1v1h-1zM2 12h1v1h-1zM5 12h1v1h-1zM10 12h1v1h-1zM13 12h1v1h-1z","transfer":"M10 2h1v1h-1zM10 3h2v1h-2zM1 4h12v1h-12zM10 5h2v1h-2zM10 6h1v1h-1zM5 8h1v1h-1zM4 9h2v1h-2zM3 10h12v1h-12zM4 11h2v1h-2zM5 12h1v1h-1z","term":"M1 2h14v1h-14zM1 3h1v1h-1zM14 3h1v1h-1zM1 4h1v1h-1zM3 4h2v1h-2zM14 4h1v1h-1zM1 5h1v1h-1zM4 5h2v1h-2zM14 5h1v1h-1zM1 6h1v1h-1zM5 6h2v1h-2zM14 6h1v1h-1zM1 7h1v1h-1zM4 7h2v1h-2zM14 7h1v1h-1zM1 8h1v1h-1zM3 8h2v1h-2zM7 8h6v1h-6zM14 8h1v1h-1zM1 9h1v1h-1zM14 9h1v1h-1zM1 10h14v1h-14z","battery":"M1 3h12v1h-12zM1 4h1v1h-1zM12 4h1v1h-1zM1 5h1v1h-1zM3 5h2v1h-2zM6 5h2v1h-2zM12 5h3v1h-3zM1 6h1v1h-1zM3 6h2v1h-2zM6 6h2v1h-2zM12 6h1v1h-1zM14 6h1v1h-1zM1 7h1v1h-1zM3 7h2v1h-2zM6 7h2v1h-2zM12 7h1v1h-1zM14 7h1v1h-1zM1 8h1v1h-1zM3 8h2v1h-2zM6 8h2v1h-2zM12 8h3v1h-3zM1 9h1v1h-1zM12 9h1v1h-1zM1 10h12v1h-12z","search":"M4 1h5v1h-5zM3 2h1v1h-1zM9 2h1v1h-1zM2 3h1v1h-1zM10 3h1v1h-1zM2 4h1v1h-1zM10 4h1v1h-1zM2 5h1v1h-1zM10 5h1v1h-1zM2 6h1v1h-1zM10 6h1v1h-1zM3 7h1v1h-1zM9 7h1v1h-1zM4 8h5v1h-5zM10 8h2v1h-2zM10 9h3v1h-3zM11 10h3v1h-3zM12 11h3v1h-3zM13 12h1v1h-1z","check":"M14 2h2v1h-2zM13 3h2v1h-2zM12 4h2v1h-2zM11 5h2v1h-2zM2 6h2v1h-2zM10 6h2v1h-2zM3 7h2v1h-2zM9 7h2v1h-2zM4 8h2v1h-2zM8 8h2v1h-2zM5 9h4v1h-4zM6 10h2v1h-2z","caution":"M7 1h2v1h-2zM6 2h4v1h-4zM6 3h1v1h-1zM9 3h1v1h-1zM5 4h2v1h-2zM9 4h2v1h-2zM5 5h1v1h-1zM7 5h2v1h-2zM10 5h1v1h-1zM4 6h2v1h-2zM7 6h2v1h-2zM10 6h2v1h-2zM4 7h1v1h-1zM7 7h2v1h-2zM11 7h1v1h-1zM3 8h2v1h-2zM7 8h2v1h-2zM11 8h2v1h-2zM3 9h1v1h-1zM12 9h1v1h-1zM2 10h2v1h-2zM7 10h2v1h-2zM12 10h2v1h-2zM2 11h1v1h-1zM7 11h2v1h-2zM13 11h1v1h-1zM1 12h14v1h-14z","hourglass":"M2 1h12v1h-12zM3 2h1v1h-1zM12 2h1v1h-1zM3 3h1v1h-1zM12 3h1v1h-1zM4 4h1v1h-1zM11 4h1v1h-1zM5 5h1v1h-1zM7 5h2v1h-2zM10 5h1v1h-1zM6 6h4v1h-4zM7 7h2v1h-2zM6 8h1v1h-1zM9 8h1v1h-1zM5 9h1v1h-1zM7 9h2v1h-2zM10 9h1v1h-1zM4 10h1v1h-1zM6 10h4v1h-4zM11 10h1v1h-1zM3 11h1v1h-1zM5 11h6v1h-6zM12 11h1v1h-1zM2 12h12v1h-12z","arrowup":"M7 1h2v1h-2zM6 2h4v1h-4zM5 3h6v1h-6zM4 4h8v1h-8zM7 5h2v1h-2zM7 6h2v1h-2zM7 7h2v1h-2zM7 8h2v1h-2z","logo":"M1 1h9v1h-9zM1 2h10v1h-10zM1 3h2v1h-2zM9 3h3v1h-3zM1 4h2v1h-2zM10 4h3v1h-3zM1 5h2v1h-2zM11 5h2v1h-2zM1 6h2v1h-2zM11 6h2v1h-2zM1 7h2v1h-2zM11 7h2v1h-2zM1 8h2v1h-2zM11 8h2v1h-2zM1 9h2v1h-2zM10 9h3v1h-3zM1 10h2v1h-2zM9 10h3v1h-3zM1 11h10v1h-10zM1 12h9v1h-9z","coin":"M6 5h2v1h-2zM5 6h4v1h-4zM5 7h4v1h-4zM6 8h2v1h-2z"};
+
+const fmtN = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+const fmtC = new Intl.NumberFormat('id-ID', { notation: 'compact', maximumFractionDigits: 1 });
+function num(n) { return fmtN.format(Math.abs(Math.round(n))); }
+function rp(n) { return (n < 0 ? '-' : '') + 'Rp ' + num(n); }
+function compact(n) { return fmtC.format(Math.abs(n)).replace(/ /g, ' '); }
+function rpc(n) { return (n < 0 ? '-' : '') + 'Rp ' + compact(n); }
+function hash(s) { let h = 7; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; }
+const TILTS = ['tilt-a', 'tilt-b', 'tilt-c', 'tilt-d', 'tilt-e'];
+
+const CATS = {
+  food: { name: 'Food & Drinks', icon: 'food' },
+  coffee: { name: 'Coffee & Snacks', icon: 'coffee' },
+  groceries: { name: 'Groceries', icon: 'cart' },
+  transport: { name: 'Transport', icon: 'car' },
+  housing: { name: 'Housing', icon: 'building' },
+  bills: { name: 'Bills & Utilities', icon: 'bulb' },
+  subs: { name: 'Subscriptions', icon: 'tv' },
+  shopping: { name: 'Shopping', icon: 'bag' },
+  fun: { name: 'Fun & Hobbies', icon: 'star' },
+  health: { name: 'Health', icon: 'cross' },
+  family: { name: 'Family', icon: 'family' },
+  other: { name: 'Other', icon: 'box' },
+  salary: { name: 'Salary', icon: 'briefcase' },
+  bonus: { name: 'Bonus & THR', icon: 'gift' },
+  freelance: { name: 'Freelance', icon: 'chart' },
+  otherin: { name: 'Other income', icon: 'box' },
+};
+const EXP_ORDER = ['food', 'coffee', 'groceries', 'transport', 'housing', 'bills', 'subs', 'shopping', 'fun', 'health', 'family', 'other'];
+const INC_ORDER = ['salary', 'bonus', 'freelance', 'otherin'];
+const ACCTS = [
+  { id: 'bca', name: 'BCA', icon: 'bank', base: 36968000 },
+  { id: 'cash', name: 'Cash', icon: 'cash', base: 3690000 },
+  { id: 'gopay', name: 'GoPay', icon: 'phone', base: 1070500 },
+  { id: 'visa', name: 'Visa', icon: 'card', base: -4850000 },
+];
+const ACCT_NAME = { bca: 'BCA', cash: 'Cash', gopay: 'GoPay', visa: 'Visa' };
+const PAY_ORDER = ['gopay', 'cash', 'bca', 'visa'];
+const BASE_SPENT = { housing: 3500000, groceries: 2241500, food: 1846000, shopping: 1063000, transport: 951000, bills: 862000, health: 445000, coffee: 317000, subs: 296000 };
+const BASE_INCOME = 3200000;
+const BUDGETS = [
+  { id: 'all', label: 'Overall', cat: null, limit: 12000000 },
+  { id: 'food', label: 'Food & Drinks', cat: 'food', limit: 2600000 },
+  { id: 'transport', label: 'Transport', cat: 'transport', limit: 1300000 },
+  { id: 'coffee', label: 'Coffee & Snacks', cat: 'coffee', limit: 300000 },
+];
+const BILLS = [
+  { id: 'bpjs', name: 'BPJS Kesehatan', cat: 'health', due: 'Due yesterday', late: true, amount: 150000, acct: 'bca' },
+  { id: 'kos', name: 'Kos Tebet', cat: 'housing', due: 'Due 1 Oct · in 7 days', late: false, amount: 3500000, acct: 'bca' },
+];
+const TXS = [
+  { id: 't1', day: 'Today', type: 'expense', name: 'Kopi Kenangan', cat: 'coffee', acct: 'gopay', amount: 32000 },
+  { id: 't2', day: 'Today', type: 'expense', name: 'Nasi Uduk', cat: 'food', acct: 'cash', amount: 27000 },
+  { id: 't3', day: 'Yesterday', type: 'expense', name: 'GrabFood', cat: 'food', acct: 'gopay', amount: 52000 },
+  { id: 't3b', day: 'Yesterday', type: 'expense', name: 'Mie Ayam', cat: 'food', acct: 'cash', amount: 20000 },
+  { id: 't4', day: 'Yesterday', type: 'expense', name: 'Warteg', cat: 'food', acct: 'cash', amount: 15000 },
+  { id: 't5', day: 'Tue 22 Sep', type: 'transfer', name: 'Top up GoPay', from: 'bca', to: 'gopay', amount: 600000 },
+  { id: 't5b', day: 'Mon 21 Sep', type: 'expense', name: 'Gojek', cat: 'transport', acct: 'gopay', amount: 15000 },
+  { id: 't5c', day: 'Mon 21 Sep', type: 'expense', name: 'GrabCar', cat: 'transport', acct: 'gopay', amount: 38000 },
+  { id: 't6', day: 'Sun 20 Sep', type: 'expense', name: 'Pertamax', cat: 'transport', acct: 'bca', amount: 167000 },
+  { id: 't6b', day: 'Sun 20 Sep', type: 'expense', name: 'Nasi Padang', cat: 'food', acct: 'gopay', amount: 25000 },
+  { id: 't7', day: 'Sat 19 Sep', type: 'expense', name: 'Superindo', cat: 'groceries', acct: 'visa', amount: 412500 },
+  { id: 't8', day: 'Fri 18 Sep', type: 'income', name: 'Logo design', cat: 'freelance', acct: 'bca', amount: 3200000 },
+  { id: 't9', day: 'Thu 17 Sep', type: 'expense', name: 'Apotek K24', cat: 'health', acct: 'cash', amount: 86000 },
+  { id: 't10', day: 'Wed 16 Sep', type: 'transfer', name: 'ATM withdrawal', from: 'bca', to: 'cash', amount: 1000000 },
+  { id: 't11', day: 'Sat 12 Sep', type: 'expense', name: 'Netflix', cat: 'subs', acct: 'visa', amount: 186000 },
+  { id: 't12', day: 'Mon 7 Sep', type: 'expense', name: 'IndiHome', cat: 'bills', acct: 'bca', amount: 385000 },
+  { id: 't13', day: 'Sat 5 Sep', type: 'expense', name: 'Token PLN', cat: 'bills', acct: 'bca', amount: 300000 },
+  { id: 't14', day: 'Tue 1 Sep', type: 'expense', name: 'Kos Tebet', cat: 'housing', acct: 'bca', amount: 3500000 },
+];
+const TREND = [
+  { m: 'Apr', inc: 16500000, exp: 12800000 },
+  { m: 'May', inc: 16500000, exp: 13900000 },
+  { m: 'Jun', inc: 18200000, exp: 12100000 },
+  { m: 'Jul', inc: 16500000, exp: 14600000 },
+  { m: 'Aug', inc: 19000000, exp: 13400000 },
+];
+const THEMES = [
+  { val: 'auto', label: 'Automatic', hint: 'follows iPhone' },
+  { val: 'day', label: 'Day', hint: 'bright paper' },
+  { val: 'night', label: 'Night', hint: 'soft navy' },
+];
+const PALETTES = [
+  { val: 'candy', label: 'Candy', hint: 'soft pastels' },
+  { val: 'arcade', label: 'Arcade', hint: 'bold 90s brights' },
+  { val: 'sunset', label: 'Sunset', hint: 'warm 70s tones' },
+];
+const CAT_COLOR = {
+  food: 'orange', coffee: 'caramel', groceries: 'green', transport: 'blue', housing: 'violet', bills: 'yellow',
+  subs: 'purple', shopping: 'pink', fun: 'red', health: 'mint', family: 'peach', other: 'gray',
+  salary: 'green', bonus: 'yellow', freelance: 'blue', otherin: 'gray',
+};
+const ACCT_COLOR = { bca: 'blue', cash: 'green', gopay: 'mint', visa: 'purple' };
+// ---------- Offline "slang" parser: "mie ayam goceng", "bensin ceban kemarin", "dua puluh lima ribu" ----------
+const SLANG = { cepek: 100, gopek: 500, gocap: 50, jigo: 25, seceng: 1000, noceng: 2000, goceng: 5000, ceban: 10000, goban: 50000, ceti: 1000000, cetiao: 1000000, gotiao: 5000000 };
+const NUMW = { nol: 0, satu: 1, dua: 2, tiga: 3, empat: 4, lima: 5, enam: 6, tujuh: 7, delapan: 8, sembilan: 9, sepuluh: 10, sebelas: 11, setengah: 0.5 };
+const THOUSAND = ['rb', 'ribu', 'rebu', 'k', 'rbu'];
+const MILLION = ['jt', 'juta', 'jeti'];
+const STOP = ['beli', 'bayar', 'pakai', 'pake', 'via', 'buat', 'untuk', 'utk', 'dan', 'yang', 'yg', 'di', 'harga', 'rp'];
+const ACCT_WORDS = { gopay: 'gopay', gopey: 'gopay', gp: 'gopay', cash: 'cash', tunai: 'cash', kes: 'cash', bca: 'bca', debit: 'bca', atm: 'bca', visa: 'visa', cc: 'visa', kartu: 'visa' };
+const DAY_WORDS = { kemarin: 'Yesterday', kemaren: 'Yesterday', kmrn: 'Yesterday', tadi: 'Today', barusan: 'Today', sekarang: 'Today' };
+const INCOME_WORDS = { gaji: 'salary', gajian: 'salary', salary: 'salary', thr: 'bonus', bonus: 'bonus', freelance: 'freelance', proyek: 'freelance', project: 'freelance', dapat: 'otherin', dapet: 'otherin', terima: 'otherin', refund: 'otherin', cashback: 'otherin' };
+const CAT_WORDS = {};
+[
+  ['food', 'mie mi bakso nasi sate soto ayam bebek makan warteg padang gofood grabfood shopeefood martabak pecel gado siomay seblak burger pizza bubur geprek mcd kfc lalapan ketoprak rendang uduk lontong'],
+  ['coffee', 'kopi coffee kenangan starbucks fore janji teh boba chatime jajan snack cemilan es'],
+  ['transport', 'bensin pertamax pertalite parkir grab gojek gocar grabcar ojek ojol krl mrt transjakarta tol taksi bluebird kereta busway'],
+  ['groceries', 'indomaret alfamart superindo hypermart sayur belanja pasar beras telur galon minyak indomie'],
+  ['bills', 'listrik pln token pulsa kuota internet indihome wifi pdam iuran admin'],
+  ['subs', 'netflix spotify youtube icloud disney vidio langganan premium'],
+  ['shopping', 'shopee tokopedia tokped lazada baju sepatu uniqlo celana tas zara ikea'],
+  ['fun', 'bioskop nonton cgv xxi game karaoke konser steam'],
+  ['health', 'apotek obat dokter klinik vitamin bpjs halodoc'],
+  ['family', 'ortu mama papa ibu bapak kiriman adik kakak anak'],
+  ['housing', 'kos kost kontrakan sewa apartemen'],
+].forEach((row) => row[1].split(' ').forEach((w) => { CAT_WORDS[w] = row[0]; }));
+
+function titleCase(s) { return s.replace(/(^|\s)\S/g, (c) => c.toUpperCase()); }
+
+function parseEntry(input, history) {
+  const raw = input.trim().toLowerCase().replace(/hari ini/g, 'tadi').replace(/top up/g, 'topup');
+  const toks = raw.split(/\s+/).filter(Boolean);
+  const used = {};
+  const notes = [];
+  let total = 0, cur = 0, last = 0, seen = false, pending = [];
+  const flush = () => {
+    if (cur >= 100) { total += cur; seen = true; }
+    else pending.forEach((k) => { delete used[k]; });
+    cur = 0; last = 0; pending = [];
+  };
+  for (let i = 0; i < toks.length; i++) {
+    const w = toks[i];
+    let m;
+    if (SLANG[w] != null) {
+      flush();
+      let v = SLANG[w];
+      if (v < 1000) { notes.push(w + ' read as Rp ' + num(v * 1000)); v *= 1000; }
+      else notes.push(w + ' = Rp ' + num(v));
+      total += v; seen = true; used[i] = true;
+      continue;
+    }
+    m = w.match(/^(\d+(?:[.,]\d+)*)(rb|ribu|rebu|k|jt|juta)?$/);
+    if (m) {
+      flush();
+      let suf = m[2] || '';
+      const nx = toks[i + 1];
+      if (!suf && (THOUSAND.indexOf(nx) >= 0 || MILLION.indexOf(nx) >= 0)) { suf = nx; used[i + 1] = true; }
+      const dec = /^\d+[.,]\d{1,2}$/.test(m[1]);
+      const base = dec ? parseFloat(m[1].replace(',', '.')) : Number(m[1].replace(/[.,]/g, ''));
+      const v = MILLION.indexOf(suf) >= 0 ? base * 1e6 : THOUSAND.indexOf(suf) >= 0 ? base * 1000 : base;
+      total += Math.round(v); seen = true; used[i] = true;
+      if (used[i + 1]) i++;
+      continue;
+    }
+    if (NUMW[w] != null) { cur += NUMW[w]; last = NUMW[w]; used[i] = true; pending.push(i); continue; }
+    if (w === 'seratus') { cur += 100; last = 0; used[i] = true; pending.push(i); continue; }
+    if (w === 'belas' && pending.length) { cur += 10; last = 0; used[i] = true; pending.push(i); continue; }
+    if (w === 'puluh' && pending.length) { cur = cur - last + last * 10; last = 0; used[i] = true; pending.push(i); continue; }
+    if (w === 'ratus' && pending.length) { cur = cur - last + last * 100; last = 0; used[i] = true; pending.push(i); continue; }
+    if (w === 'seribu') { flush(); total += 1000; seen = true; used[i] = true; continue; }
+    if (w === 'sejuta') { flush(); total += 1e6; seen = true; used[i] = true; continue; }
+    if (THOUSAND.indexOf(w) >= 0 && pending.length) { total += cur * 1000; seen = true; used[i] = true; cur = 0; last = 0; pending = []; continue; }
+    if (MILLION.indexOf(w) >= 0 && pending.length) { total += cur * 1e6; seen = true; used[i] = true; cur = 0; last = 0; pending = []; continue; }
+    flush();
+  }
+  flush();
+
+  let day = 'Today', acct = null, type = 'expense', incCat = null, topup = false;
+  const words = [];
+  toks.forEach((w, i) => {
+    if (used[i]) return;
+    if (DAY_WORDS[w]) { day = DAY_WORDS[w]; return; }
+    if (ACCT_WORDS[w]) { acct = ACCT_WORDS[w]; return; }
+    if (w === 'topup' || w === 'isi') { topup = true; return; }
+    if (STOP.indexOf(w) >= 0) return;
+    if (INCOME_WORDS[w]) { type = 'income'; incCat = incCat || INCOME_WORDS[w]; }
+    words.push(w);
+  });
+  let title = titleCase(words.join(' '));
+  const amount = Math.round(total);
+  if (topup) {
+    const to = acct && acct !== 'bca' ? acct : 'gopay';
+    return { ok: seen && amount > 0, amount, type: 'transfer', from: 'bca', to, acct: to, cat: null, title: 'Top up ' + ACCT_NAME[to], day, notes };
+  }
+  let cat = null;
+  const hit = history.find((t) => t.type !== 'transfer' && t.name.toLowerCase() === title.toLowerCase());
+  if (hit) {
+    title = hit.name; cat = hit.cat; type = hit.type;
+    if (!acct) acct = hit.acct;
+    notes.push('Matched your past "' + hit.name + '"');
+  }
+  if (!cat && type === 'income') cat = incCat || 'otherin';
+  if (!cat) {
+    for (let i = 0; i < words.length && !cat; i++) cat = CAT_WORDS[words[i]] || null;
+    if (!cat) cat = 'other';
+  }
+  if (!acct) acct = type === 'income' ? 'bca' : 'gopay';
+  if (!title) title = CATS[cat].name;
+  return { ok: seen && amount > 0, amount, type, cat, acct, day, title, notes };
+}
+
+// ---------- Duit Terminal questions (offline) ----------
+const FILLER = ['berapa', 'brp', 'total', 'habis', 'pengeluaran', 'spent', 'how', 'much', 'buat', 'untuk', 'bulan', 'ini', 'minggu', 'saya', 'aku', 'gue', 'gw', 'for', 'on', 'this', 'month', 'di', 'sih', 'ya', 'is', 'my'];
+function isQuestion(t) {
+  const x = t.trim().toLowerCase();
+  return x === '?' || x.charAt(x.length - 1) === '?' || /\bvs\b/.test(x) ||
+    /^(help|berapa|brp|total|how|terbesar|biggest|top|sisa|harian|uang harian|inflasi|harga)\b/.test(x);
+}
+function pad(s, n) { return s.length > n ? s.slice(0, n - 1) + '~' : s + ' '.repeat(n - s.length); }
+function bars(v, max) { return max > 0 ? '#'.repeat(Math.max(1, Math.round((v / max) * 14))) : ''; }
+function sumTerm(term, ctx, preferTitles) {
+  const t = term.trim().toLowerCase();
+  if (!t) return null;
+  const titled = ctx.expenses.filter((e) => e.name.toLowerCase().indexOf(t) >= 0);
+  const titleSum = titled.reduce((a, e) => a + e.amount, 0);
+  let cat = CAT_WORDS[t] || null;
+  if (!cat) Object.keys(CATS).forEach((k) => { if (!cat && CATS[k].name.toLowerCase().indexOf(t) >= 0) cat = k; });
+  if (!preferTitles && cat && ctx.spent[cat]) return { label: CATS[cat].name, amount: ctx.spent[cat] };
+  if (titled.length) return { label: titleCase(t) + ' (' + titled.length + 'x)', amount: titleSum };
+  if (cat && ctx.spent[cat]) return { label: CATS[cat].name, amount: ctx.spent[cat] };
+  return null;
+}
+function runQuery(input, ctx) {
+  const x = input.trim().toLowerCase().replace(/\?+$/, '').trim();
+  if (x === 'help' || x === '') {
+    return [
+      'LOG   es teh goceng · mie ayam 22rb kemarin',
+      '      kos 3,5jt bca · topup gopay 100rb · gaji 16,5jt',
+      'ASK   berapa kopi? · grab vs gojek · terbesar',
+      '      sisa · inflasi · help',
+    ];
+  }
+  if (/\bvs\b/.test(x)) {
+    const parts = x.split(/\bvs\b/).map((p) => p.trim()).filter(Boolean).slice(0, 3);
+    const res = parts.map((p) => sumTerm(p, ctx, true) || { label: titleCase(p), amount: 0 });
+    const max = Math.max.apply(null, res.map((r) => r.amount).concat([1]));
+    return res.map((r) => pad(r.label, 12) + ' ' + pad(bars(r.amount, max), 14) + ' ' + rpc(r.amount));
+  }
+  if (/^(terbesar|biggest|top)/.test(x)) {
+    return ctx.expenses.slice().sort((a, b) => b.amount - a.amount).slice(0, 3)
+      .map((e, i) => (i + 1) + '. ' + pad(e.name, 14) + ' ' + rp(e.amount));
+  }
+  if (/^(sisa|harian|uang harian)/.test(x)) return ctx.allowanceLines;
+  if (/^(inflasi|harga)/.test(x)) return ctx.inflationLines;
+  const term = x.split(/\s+/).filter((w) => FILLER.indexOf(w) < 0).join(' ');
+  if (!term) return ['September so far: ' + rp(ctx.totalSpent) + ' spent.'];
+  const r = sumTerm(term, ctx, false);
+  if (!r) return ['Nothing found for "' + term + '" this month.'];
+  return [r.label + ' in September: ' + rp(r.amount) + ' (' + (Math.round((r.amount / ctx.totalSpent) * 1000) / 10).toLocaleString('id-ID') + '% of spending)'];
+}
+
+// ---------- Balance Check: guess what wasn't logged ----------
+const BC_TABS = [
+  { id: 'gopay', label: 'GoPay', hint: 'Open your GoPay app and type the balance it shows.', demoGap: 47000 },
+  { id: 'cash', label: 'Cash', hint: 'Count the cash in your wallet.', demoGap: 72000 },
+  { id: 'bca', label: 'BCA', hint: 'Type the balance your BCA app shows.', demoGap: 0 },
+  { id: 'visa', label: 'Visa', hint: 'Type how much your card app says you owe.', demoGap: 186000 },
+];
+const BC_EXTRAS = {
+  gopay: [{ title: 'Admin fee', amount: 1000, cat: 'bills' }],
+  cash: [{ title: 'Parkir', amount: 2000, cat: 'transport' }, { title: 'Amal Jumat', amount: 10000, cat: 'other' }],
+  bca: [{ title: 'Admin bulanan', amount: 17000, cat: 'bills' }],
+  visa: [{ title: 'Iuran kartu', amount: 25000, cat: 'bills' }],
+};
+function balanceCandidates(acct, history) {
+  const seen = {};
+  const out = [];
+  history.forEach((t) => {
+    if (t.type !== 'expense' || t.acct !== acct) return;
+    const key = t.name.toLowerCase();
+    if (seen[key]) { seen[key].count += 1; return; }
+    seen[key] = { title: t.name, amount: t.amount, cat: t.cat, count: 1 };
+    out.push(seen[key]);
+  });
+  (BC_EXTRAS[acct] || []).forEach((e) => {
+    if (!seen[e.title.toLowerCase()]) out.push(Object.assign({ count: 0 }, e));
+  });
+  return out.sort((a, b) => b.count - a.count).slice(0, 6);
+}
+function bestCombo(cands, gap) {
+  let best = null;
+  for (let mask = 1; mask < (1 << cands.length); mask++) {
+    let sum = 0;
+    const pick = [];
+    for (let i = 0; i < cands.length; i++) if (mask & (1 << i)) { sum += cands[i].amount; pick.push(cands[i]); }
+    if (sum === gap && (!best || pick.length < best.length)) best = pick;
+  }
+  return best;
+}
+
+// ---------- Tanggal Tua, payday split, units, prices, habits, worth-it ----------
+const SALARY = 16500000;
+const PAYDAYS = [
+  { val: 1, label: '1st of the month', days: 7, date: 'Thu 1 Oct', next: 'Sun 1 Nov', nextDays: 31 },
+  { val: 25, label: '25th', days: 1, date: 'Fri 25 Sep', next: 'Sun 25 Oct', nextDays: 30 },
+  { val: 28, label: '28th', days: 4, date: 'Mon 28 Sep', next: 'Wed 28 Oct', nextDays: 30 },
+];
+const SPLIT_ROWS = [
+  { id: 'kos', label: 'Kos Tebet', icon: 'building', color: 'violet' },
+  { id: 'save', label: 'Savings', icon: 'bank', color: 'green' },
+  { id: 'ortu', label: 'Kiriman ortu', icon: 'family', color: 'peach' },
+  { id: 'bills', label: 'Bills & subscriptions', icon: 'bulb', color: 'yellow' },
+];
+const UNITS = [
+  { val: 'rp', label: 'Rupiah' },
+  { val: 'mie', label: 'Mie ayam' },
+  { val: 'jam', label: 'Work hrs' },
+];
+const HOUR_PRICE = Math.round(SALARY / 173);
+function inUnit(n, unit, mie) {
+  const fmt = (v) => (v >= 10 ? Math.round(v) : Math.round(v * 10) / 10).toLocaleString('id-ID');
+  if (unit === 'mie') return fmt(n / mie) + (n / mie === 1 ? ' bowl' : ' bowls');
+  if (unit === 'jam') return fmt(n / HOUR_PRICE) + ' work hrs';
+  return num(n);
+}
+const PRICES = [
+  { title: 'Mie Ayam', cat: 'food', hist: [15000, 16000, 18000, 18000, 20000] },
+  { title: 'Kopi Kenangan', cat: 'coffee', hist: [28000, 28000, 30000, 32000, 32000] },
+  { title: 'Parkir Motor', cat: 'transport', hist: [2000, 2000, 3000, 3000, 3000] },
+  { title: 'Nasi Padang', cat: 'food', hist: [22000, 22000, 23000, 25000, 25000] },
+  { title: 'Indomie', cat: 'groceries', hist: [3100, 3100, 3300, 3400, 3500] },
+];
+function pricesFor(added) {
+  const rows = PRICES.map((p) => {
+    const hist = p.hist.slice();
+    const mine = added.filter((t) => t.type === 'expense' && t.name.toLowerCase() === p.title.toLowerCase());
+    if (mine.length) hist.push(mine[0].amount);
+    const first = hist[0];
+    const last = hist[hist.length - 1];
+    const max = Math.max.apply(null, hist);
+    return {
+      title: p.title, cat: p.cat, first, last,
+      pct: Math.round(((last - first) / first) * 100),
+      bars: hist.slice(-6).map((v) => ({ h: Math.max(3, Math.round((v / max) * 22)) })),
+    };
+  });
+  const basket = Math.round(rows.reduce((a, r) => a + r.pct, 0) / rows.length);
+  return { rows, basket };
+}
+const HABITS = [
+  { id: 'kopi', title: 'Kopi Kenangan', cat: 'coffee', perWeek: 5, price: 32000 },
+  { id: 'grabfood', title: 'GrabFood', cat: 'food', perWeek: 3, price: 52000 },
+  { id: 'mie', title: 'Mie Ayam', cat: 'food', perWeek: 2, price: 20000 },
+];
+const WORTH = [
+  { id: 'w1', title: 'Uniqlo jacket', cat: 'shopping', amount: 499000, when: 'bought yesterday' },
+  { id: 'w2', title: 'Tokopedia keyboard', cat: 'shopping', amount: 850000, when: 'bought 2 days ago' },
+  { id: 'w3', title: 'CGV, 2 tickets', cat: 'fun', amount: 120000, when: 'bought 3 days ago' },
+];
+const EXAMPLES = ['mie ayam 22rb', 'es teh goceng', 'bensin ceban kemarin', 'dua ribu parkir', 'topup gopay 100rb', 'berapa kopi?', 'grab vs gojek', 'sisa', 'help'];
+
+const ALERTS = {
+  about: { title: 'Duit OS 1.0', body: 'Retro Computer edition of your money tracker. Offline-first, made for iPhone and the web.', icon: 'logo', confirm: false },
+  export: { title: 'Export CSV', body: 'In the real app this saves every transaction as a spreadsheet file you can open in Numbers or Excel.', icon: 'activity', confirm: false },
+  connect: { title: 'Connect sync', body: 'In the real app you paste your Supabase URL and key here to keep your iPhone and laptop in sync.', icon: 'cloud', confirm: false },
+  erase: { title: 'Erase this device?', body: 'Every transaction on this iPhone will be deleted. This can’t be undone.', icon: 'caution', confirm: true },
+  erased: { title: 'Nothing was erased', body: 'This is only a style preview, so your data is safe.', icon: 'check', confirm: false },
+};
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const e = Math.pow(10, Math.floor(Math.log10(v)));
+  const f = v / e;
+  const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+  for (let i = 0; i < steps.length; i++) if (f <= steps[i]) return steps[i] * e;
+  return 10 * e;
+}
+
+class Component extends DCLogic {
+  constructor(...args) {
+    super(...args);
+    this.state = {
+      screen: 'home', menu: null, theme: null, sysDark: false, texture: null,
+      comp: 'closed', ctype: 'expense', amount: 0, cat: null, acct: 'gopay', day: 'Today', from: 'bca', to: 'gopay', err: '',
+      added: [], paid: {}, shut: {}, filter: 'all', query: '', sel: null, flashId: null, month: 5,
+      alert: null, faceId: true, shake: null, seq: 0, palette: null, title: '',
+      cmd: '', term: [{ k: 'dim', t: 'DUIT OS 1.0 · type an expense or ask a question.' }, { k: 'dim', t: 'Type help for everything I understand.' }], termStamp: false,
+      bc: null, bcAmount: 0,
+      payday: 1, paid2: false, boot: false, splitOpen: false, splitStamp: false, spendMoney: 0,
+      split: { kos: 3500000, save: 3000000, ortu: 1000000, bills: 1250000 },
+      unit: 'rp', rated: {}, rating: null, habitOpen: null, habitFreq: {},
+    };
+    this.timers = [];
+    this.contentEl = null;
+  }
+
+  componentDidMount() {
+    try {
+      this.mq = window.matchMedia('(prefers-color-scheme: dark)');
+      this.onMq = () => this.setState({ sysDark: this.mq.matches });
+      if (this.mq.addEventListener) this.mq.addEventListener('change', this.onMq);
+      else this.mq.addListener(this.onMq);
+      this.setState({ sysDark: this.mq.matches });
+    } catch (e) {}
+  }
+
+  componentWillUnmount() {
+    this.timers.forEach((t) => clearTimeout(t));
+    try {
+      if (this.mq && this.mq.removeEventListener) this.mq.removeEventListener('change', this.onMq);
+      else if (this.mq) this.mq.removeListener(this.onMq);
+    } catch (e) {}
+  }
+
+  later(ms, fn) {
+    this.timers.push(setTimeout(fn, ms));
+  }
+
+  go(screen) {
+    this.setState({ screen, menu: null, sel: null });
+    if (this.contentEl) this.contentEl.scrollTop = 0;
+  }
+
+  openComposer(type) {
+    if (this.state.comp !== 'closed') return;
+    this.setState({ comp: 'opening', ctype: type, amount: 0, cat: null, err: '', menu: null, day: 'Today', title: '' });
+    this.later(320, () => this.setState({ comp: 'open' }));
+  }
+
+  closeComposer() {
+    if (this.state.comp !== 'open') return;
+    this.setState({ comp: 'closing' });
+    this.later(270, () => this.setState({ comp: 'closed' }));
+  }
+
+  press(k) {
+    const a = this.state.amount;
+    let n;
+    if (k === 'del') n = Math.floor(a / 10);
+    else if (k === '000') n = a === 0 ? 0 : a * 1000;
+    else n = a * 10 + Number(k);
+    if (n > 99999999999) n = a;
+    this.setState({ amount: n, err: '' });
+  }
+
+  save() {
+    const s = this.state;
+    if (s.comp !== 'open') return;
+    let err = '';
+    if (s.amount <= 0) err = 'Type an amount on the keypad first.';
+    else if (s.ctype !== 'transfer' && !s.cat) err = 'Pick a category.';
+    else if (s.ctype === 'transfer' && s.from === s.to) err = 'Pick two different accounts.';
+    if (err) {
+      this.setState({ err, shake: 'composer' });
+      this.later(480, () => this.setState({ shake: null }));
+      return;
+    }
+    const seq = s.seq + 1;
+    const isT = s.ctype === 'transfer';
+    const tx = {
+      id: 'n' + seq, day: s.day, type: s.ctype, amount: s.amount,
+      cat: isT ? null : s.cat, acct: s.acct, from: s.from, to: s.to,
+      name: s.title.trim() || (isT ? 'Transfer' : CATS[s.cat].name),
+      after: s.paid2,
+    };
+    this.setState({ comp: 'stamping', seq, shake: 'composer' });
+    this.later(820, () => {
+      this.setState((st) => ({ added: [tx].concat(st.added), comp: 'closing', shake: null, flashId: tx.id }));
+      this.later(270, () => this.setState({ comp: 'closed' }));
+      this.later(1600, () => this.setState({ flashId: null }));
+    });
+  }
+
+  pay(bill) {
+    if (this.state.paid[bill.id]) return;
+    const tx = { id: 'p-' + bill.id, day: 'Today', type: 'expense', name: bill.name, cat: bill.cat, acct: bill.acct, amount: bill.amount, after: this.state.paid2 };
+    this.setState((st) => ({ paid: Object.assign({}, st.paid, { [bill.id]: true }), added: [tx].concat(st.added), shake: 'bills' }));
+    this.later(720, () => this.setState({ shake: null }));
+  }
+
+  toggleWin(id) {
+    this.setState((st) => ({ shut: Object.assign({}, st.shut, { [id]: !st.shut[id] }) }));
+  }
+
+  cycle(list, cur) {
+    const i = list.indexOf(cur);
+    return list[(i + 1) % list.length];
+  }
+
+  rowFor(t) {
+    const s = this.state;
+    const isT = t.type === 'transfer';
+    const cat = isT ? null : CATS[t.cat];
+    const acct = ACCT_NAME[t.acct];
+    let sub;
+    if (isT) sub = ACCT_NAME[t.from] + ' → ' + ACCT_NAME[t.to];
+    else sub = t.name === cat.name ? acct : cat.name + ' · ' + acct;
+    const sign = t.type === 'income' ? '+' : t.type === 'expense' ? '-' : '';
+    const sel = s.sel === t.id;
+    return {
+      id: t.id,
+      icon: ICONS[isT ? 'transfer' : cat.icon],
+      tileCls: 'tile cc-' + (isT ? 'lilac' : CAT_COLOR[t.cat]),
+      name: t.name,
+      sub,
+      amtText: sign + num(t.amount),
+      amtCls: 'amt' + (t.type === 'income' ? ' amt-pos' : isT ? ' amt-dim' : ''),
+      rowCls: 'row' + (sel ? ' row-sel' : '') + (s.flashId === t.id ? ' flash' : ''),
+      sel,
+      pick: () => this.setState({ sel: sel ? null : t.id }),
+    };
+  }
+
+  runCommand() {
+    const s = this.state;
+    const text = s.cmd.trim();
+    if (!text) return;
+    const lines = s.term.concat([{ k: 'in', t: 'duit> ' + text }]);
+    if (isQuestion(text)) {
+      runQuery(text, this.qctx).forEach((t) => lines.push({ k: 'ok', t }));
+      this.setState({ term: lines.slice(-10), cmd: '' });
+      return;
+    }
+    const p = parseEntry(text, s.added.concat(TXS));
+    if (!p.ok) {
+      lines.push({ k: 'err', t: 'No amount found. Try 18rb, 25.000, goceng or dua puluh ribu.' });
+      this.setState({ term: lines.slice(-10) });
+      return;
+    }
+    const seq = s.seq + 1;
+    const isT = p.type === 'transfer';
+    const tx = { id: 'n' + seq, day: p.day, type: p.type, amount: p.amount, cat: p.cat, acct: p.acct, from: p.from, to: p.to, name: p.title, after: s.paid2 };
+    const where = isT ? ACCT_NAME[p.from] + ' > ' + ACCT_NAME[p.to] : CATS[p.cat].name + ' · ' + ACCT_NAME[p.acct];
+    lines.push({ k: 'ok', t: 'OK  ' + p.title + ' · ' + rp(p.amount) + ' · ' + where + ' · ' + p.day });
+    this.setState((st) => ({ term: lines.slice(-10), cmd: '', seq, added: [tx].concat(st.added), flashId: tx.id, termStamp: true, shake: 'term' }));
+    this.later(950, () => this.setState({ termStamp: false, shake: null }));
+    this.later(1600, () => this.setState({ flashId: null }));
+  }
+
+  openBalance(acct) {
+    this.setState({ bc: acct || 'gopay', bcAmount: 0, menu: null });
+  }
+
+  pressBalance(k) {
+    const a = this.state.bcAmount;
+    let n;
+    if (k === 'del') n = Math.floor(a / 10);
+    else if (k === '000') n = a === 0 ? 0 : a * 1000;
+    else n = a * 10 + Number(k);
+    if (n > 99999999999) n = a;
+    this.setState({ bcAmount: n });
+  }
+
+  logFromBalance(items) {
+    const s = this.state;
+    let seq = s.seq;
+    const txs = items.map((it) => {
+      seq += 1;
+      return { id: 'n' + seq, day: 'This week', fromBc: true, type: it.type || 'expense', amount: it.amount, cat: it.cat || null, acct: s.bc, from: it.from, to: it.to, name: it.title, after: s.paid2 };
+    });
+    this.setState((st) => ({ added: txs.concat(st.added), seq }));
+  }
+
+  simulatePayday() {
+    const s = this.state;
+    if (s.paid2 || s.boot) return;
+    this.setState({ boot: true, menu: null, bc: null, comp: 'closed', alert: null });
+    this.later(2100, () => this.setState({ boot: false, splitOpen: true }));
+  }
+
+  confirmSplit(spend) {
+    if (this.state.splitStamp) return;
+    if (spend < 0) {
+      this.setState({ shake: 'split' });
+      this.later(480, () => this.setState({ shake: null }));
+      return;
+    }
+    const seq = this.state.seq + 1;
+    const tx = { id: 'n' + seq, day: 'Today', type: 'income', amount: SALARY, cat: 'salary', acct: 'bca', name: 'Salary', after: true };
+    this.setState((st) => ({ added: [tx].concat(st.added), seq, paid2: true, spendMoney: spend, splitStamp: true, flashId: tx.id }));
+    this.later(1000, () => this.setState({ splitOpen: false, splitStamp: false }));
+    this.later(1800, () => this.setState({ flashId: null }));
+  }
+
+  rate(id, v) {
+    if (this.state.rating) return;
+    this.setState({ rating: { id, v }, shake: 'worth' });
+    this.later(1000, () => this.setState((st) => ({ rated: Object.assign({}, st.rated, { [id]: v }), rating: null, shake: null })));
+  }
+
+  renderVals() {
+    const s = this.state;
+    const p = this.props || {};
+    const pref = s.theme || p.theme || 'auto';
+    const dark = pref === 'night' || (pref === 'auto' && s.sysDark);
+    const texture = s.texture == null ? p.texture !== false : s.texture;
+    const palette = s.palette || p.palette || 'candy';
+    const rootCls = [dark ? 'theme-night' : 'theme-day', 'pal-' + palette, 'acc-' + (p.accent || 'cobalt'), texture ? 'tex' : ''].join(' ');
+
+    // Ledger: base month + anything added in this session
+    const spent = Object.assign({}, BASE_SPENT);
+    let income = BASE_INCOME;
+    const bal = {};
+    ACCTS.forEach((a) => { bal[a.id] = a.base; });
+    s.added.forEach((t) => {
+      if (t.type === 'expense') { spent[t.cat] = (spent[t.cat] || 0) + t.amount; bal[t.acct] -= t.amount; }
+      else if (t.type === 'income') { income += t.amount; bal[t.acct] += t.amount; }
+      else { bal[t.from] -= t.amount; bal[t.to] += t.amount; }
+    });
+    const totalSpent = Object.keys(spent).reduce((a, k) => a + spent[k], 0);
+    const worth = Object.keys(bal).reduce((a, k) => a + bal[k], 0);
+    const all = s.added.concat(TXS);
+
+    const win = (id) => ({
+      open: !s.shut[id],
+      cls: 'win' + (s.shut[id] ? ' win-shut' : '') + (s.shake === id ? ' shake' : ''),
+      toggle: () => this.toggleWin(id),
+    });
+
+    const accounts = ACCTS.map((a) => ({
+      name: a.name,
+      icon: ICONS[a.icon],
+      tileCls: 'tile tile-md cc-' + ACCT_COLOR[a.id],
+      balText: (bal[a.id] < 0 ? '-' : '') + compact(bal[a.id]),
+      balCls: 'dbal' + (bal[a.id] < 0 ? ' dbal-neg' : ''),
+      aria: 'Balance check for ' + a.name,
+      check: () => this.openBalance(a.id),
+    }));
+
+    const budgets = BUDGETS.map((b, i) => {
+      const used = b.cat ? (spent[b.cat] || 0) : totalSpent;
+      const ratio = used / b.limit;
+      const status = ratio > 1 ? 'over' : ratio >= 0.8 ? 'warn' : 'ok';
+      const filled = Math.min(20, Math.round(ratio * 20));
+      const fill = status === 'over' ? 'blk blk-over' : status === 'warn' ? 'blk blk-warn' : 'blk blk-ok';
+      const blocks = [];
+      for (let k = 0; k < 20; k++) blocks.push({ cls: k < filled ? fill : 'blk' });
+      const left = b.limit - used;
+      return {
+        label: b.label,
+        blocks,
+        aria: b.label + ': ' + Math.round(ratio * 100) + '% of budget used',
+        usedText: rpc(used) + ' of ' + rpc(b.limit),
+        leftText: left >= 0 ? rpc(left) + ' left' : rpc(-left) + ' over',
+        leftCls: status === 'over' ? 'bleft-over' : status === 'warn' ? 'bleft-warn' : '',
+        ok: status === 'ok', warn: status === 'warn', over: status === 'over',
+        stampCls: 'stamp ' + TILTS[hash(b.id) % TILTS.length] + ' dly-' + i,
+      };
+    });
+
+    const bills = BILLS.map((b) => {
+      const paid = !!s.paid[b.id];
+      return {
+        name: b.name,
+        icon: ICONS[CATS[b.cat].icon],
+        tileCls: 'tile cc-' + CAT_COLOR[b.cat],
+        due: paid ? 'Logged today' : b.due,
+        dueCls: 'due' + (b.late && !paid ? ' due-late' : ''),
+        amountText: num(b.amount),
+        paid, unpaid: !paid,
+        payLabel: 'Mark ' + b.name + ' as paid',
+        rowCls: 'row bill' + (paid ? ' bill-done' : ''),
+        pay: () => this.pay(b),
+      };
+    });
+
+    // Activity
+    const q = s.query.trim().toLowerCase();
+    const digits = q.replace(/[.\s]/g, '');
+    const filtered = all.filter((t) => {
+      if (s.filter === 'out' && t.type !== 'expense') return false;
+      if (s.filter === 'in' && t.type !== 'income') return false;
+      if (!q) return true;
+      const hay = [t.name, t.cat ? CATS[t.cat].name : '', ACCT_NAME[t.acct] || '', ACCT_NAME[t.from] || '', ACCT_NAME[t.to] || ''].join(' ').toLowerCase();
+      return hay.indexOf(q) >= 0 || (/^\d+$/.test(digits) && String(t.amount).indexOf(digits) >= 0);
+    });
+    const groups = [];
+    filtered.forEach((t) => {
+      let g = groups[groups.length - 1];
+      if (!g || g.day !== t.day) { g = { day: t.day, items: [], net: 0 }; groups.push(g); }
+      g.items.push(this.rowFor(t));
+      g.net += t.type === 'income' ? t.amount : t.type === 'expense' ? -t.amount : 0;
+    });
+    groups.forEach((g) => { g.netText = g.net === 0 ? '' : (g.net > 0 ? '+' : '-') + num(g.net); });
+
+    // Insights
+    const maxSlice = Math.max.apply(null, Object.keys(spent).map((k) => spent[k]).concat([1]));
+    const slices = Object.keys(spent)
+      .filter((k) => spent[k] > 0)
+      .sort((a, b) => spent[b] - spent[a])
+      .map((k) => ({
+        name: CATS[k].name,
+        icon: ICONS[CATS[k].icon],
+        tileCls: 'tile cc-' + CAT_COLOR[k],
+        amtText: s.unit === 'rp' ? num(spent[k]) : inUnit(spent[k], s.unit, pricesFor(s.added).rows[0].last),
+        pct: Math.max(2, Math.round((spent[k] / maxSlice) * 100)),
+        shareText: Math.round((spent[k] / totalSpent) * 100) + '%',
+      }));
+    const series = TREND.concat([{ m: 'Sep', inc: income, exp: totalSpent }]);
+    const W = 336, H = 176, L = 36, T = 8, B = 22;
+    const plotW = W - L - 4, plotH = H - T - B;
+    const max = niceMax(Math.max.apply(null, series.map((d) => Math.max(d.inc, d.exp))));
+    const band = plotW / series.length;
+    const y = (v) => Math.round(T + plotH - (v / max) * plotH);
+    const ticks = [0, max / 2, max].map((v) => ({ y: y(v), label: v === 0 ? '0' : compact(v) }));
+    const cols = series.map((d, i) => {
+      const cx = L + band * i + band / 2;
+      const incH = Math.round((d.inc / max) * plotH);
+      const expH = Math.round((d.exp / max) * plotH);
+      return {
+        m: d.m,
+        sel: s.month === i,
+        bandX: Math.round(L + band * i + 2),
+        bandW: Math.round(band - 4),
+        incX: Math.round(cx - 15), incY: T + plotH - incH, incH,
+        expX: Math.round(cx + 1), expY: T + plotH - expH, expH,
+        labelX: Math.round(cx),
+        labelCls: 'mlabel' + (s.month === i ? ' mlabel-on' : ''),
+        aria: d.m + ' 2026: income ' + rp(d.inc) + ', spending ' + rp(d.exp),
+        pick: () => this.setState({ month: i }),
+      };
+    });
+    const sm = series[s.month];
+    const net = sm.inc - sm.exp;
+    const monthsFull = { Apr: 'April', May: 'May', Jun: 'June', Jul: 'July', Aug: 'August', Sep: 'September' };
+
+    // Composer
+    const isTransfer = s.ctype === 'transfer';
+    const order = s.ctype === 'income' ? INC_ORDER : EXP_ORDER;
+    const cats = order.map((id) => ({
+      name: CATS[id].name,
+      icon: ICONS[CATS[id].icon],
+      tileCls: 'tile tile-lg cc-' + CAT_COLOR[id],
+      on: s.cat === id,
+      cls: 'cat' + (s.cat === id ? ' cat-on' : ''),
+      pick: () => this.setState({ cat: id, err: '' }),
+    }));
+    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'del'].map((k) => ({
+      label: k === 'del' ? 'DEL' : k,
+      aria: k === 'del' ? 'Delete last digit' : k,
+      cls: 'key' + (k === 'del' ? ' key-sm' : ''),
+      press: () => this.press(k),
+    }));
+    const ctypes = [
+      { id: 'expense', label: 'Expense' },
+      { id: 'income', label: 'Income' },
+      { id: 'transfer', label: 'Transfer' },
+    ].map((c) => ({
+      label: c.label,
+      on: s.ctype === c.id,
+      cls: 'tab' + (s.ctype === c.id ? ' tab-on' : ''),
+      pick: () => this.setState({ ctype: c.id, cat: null, err: '' }),
+    }));
+    const compTitle = isTransfer ? 'New Transfer' : s.ctype === 'income' ? 'New Income' : 'New Expense';
+    // Title suggestions: past titles of this type (not bare category names), filtered as you type
+    const seenTitles = {};
+    const titlePool = [];
+    s.added.concat(TXS).forEach((t) => {
+      if (t.type !== s.ctype) return;
+      if (t.type !== 'transfer' && t.name === CATS[t.cat].name) return;
+      const key = t.name.toLowerCase();
+      if (seenTitles[key]) return;
+      seenTitles[key] = true;
+      titlePool.push(t);
+    });
+    const tq = s.title.trim().toLowerCase();
+    const sugg = titlePool
+      .filter((t) => !tq || (t.name.toLowerCase().indexOf(tq) >= 0 && t.name.toLowerCase() !== tq))
+      .slice(0, 8)
+      .map((t) => ({
+        label: t.name,
+        aria: 'Use title ' + t.name + (t.cat ? ', category ' + CATS[t.cat].name : ''),
+        dotCls: 'dot cc-' + (t.type === 'transfer' ? 'lilac' : CAT_COLOR[t.cat]),
+        pick: () => this.setState({
+          title: t.name,
+          cat: t.type === 'transfer' ? s.cat : t.cat,
+          acct: t.acct || s.acct,
+          from: t.from || s.from,
+          to: t.to || s.to,
+          err: '',
+        }),
+      }));
+    const placeholders = { expense: 'e.g. Mie Ayam', income: 'e.g. Salary September', transfer: 'e.g. Top up GoPay' };
+    let statusText = 'Tap Save when you’re done.';
+    if (s.err) statusText = s.err;
+    else if (s.amount === 0) statusText = 'Type the amount, then pick a category.';
+    else if (!isTransfer && !s.cat) statusText = 'Now pick a category.';
+
+    const history = s.added.concat(TXS);
+
+    // Tanggal Tua: a battery that empties toward payday
+    const pd = PAYDAYS.find((x) => x.val === s.payday) || PAYDAYS[0];
+    const ttLimit = s.paid2 ? Math.max(1, s.spendMoney) : BUDGETS[0].limit;
+    const ttSpent = s.paid2
+      ? s.added.filter((t) => t.after && t.type === 'expense').reduce((a, t) => a + t.amount, 0)
+      : totalSpent;
+    const ttDays = s.paid2 ? pd.nextDays : pd.days;
+    const ttDate = s.paid2 ? pd.next : pd.date;
+    const ttLeft = ttLimit - ttSpent;
+    const batt = Math.max(0, Math.min(1, ttLeft / ttLimit));
+    const power = batt <= 0.2;
+    const allowance = Math.max(0, Math.floor(ttLeft / ttDays));
+    const filled = Math.round(batt * 20);
+    const cellColor = batt <= 0.2 ? ' cell-low' : batt <= 0.5 ? ' cell-warn' : ' cell-ok';
+    const cells = [];
+    for (let i = 0; i < 20; i++) cells.push({ cls: 'cell' + (i < filled ? cellColor + (s.paid2 ? ' charge' : '') : ''), delay: s.paid2 ? i * 45 : 0 });
+    const tt = {
+      cells,
+      pct: Math.round(batt * 100),
+      pctText: Math.round(batt * 100) + '%',
+      pctCls: 'batt-pct' + (power ? ' batt-low' : ''),
+      allowText: rp(allowance),
+      subText: (ttLeft >= 0 ? rp(ttLeft) + ' left' : 'Over by ' + rp(-ttLeft)) + ' for ' + ttDays + (ttDays === 1 ? ' day' : ' days') + ' · payday ' + ttDate,
+      power,
+      canPayday: !s.paid2,
+      aria: 'Spending battery ' + Math.round(batt * 100) + ' percent. ' + rp(allowance) + ' a day until payday.',
+    };
+
+    // Prices, units, terminal context
+    const pr = pricesFor(s.added);
+    const mieNow = pr.rows[0].last;
+    const expensesAll = history.filter((t) => t.type === 'expense');
+    const jump = pr.rows.slice().sort((a, b) => b.pct - a.pct)[0];
+    this.qctx = {
+      spent, totalSpent, expenses: expensesAll,
+      allowanceLines: [rp(allowance) + ' a day for ' + ttDays + ' days (battery ' + Math.round(batt * 100) + '%).', 'Payday: ' + ttDate + '.'],
+      inflationLines: ['Your basket: +' + pr.basket + '% in 12 months.', 'Biggest jump: ' + jump.title + ' +' + jump.pct + '%.'],
+    };
+    const cmdTrim = s.cmd.trim();
+    const asking = !!cmdTrim && isQuestion(cmdTrim);
+    const parsed = cmdTrim && !asking ? parseEntry(cmdTrim, history) : null;
+    let previewChips = [];
+    let previewNotes = [];
+    if (parsed) {
+      if (parsed.ok) {
+        previewChips = [
+          { text: parsed.type === 'income' ? 'Income: ' + parsed.title : parsed.title, dotCls: '' },
+          { text: rp(parsed.amount), dotCls: '' },
+        ];
+        if (parsed.type === 'transfer') previewChips.push({ text: ACCT_NAME[parsed.from] + ' > ' + ACCT_NAME[parsed.to], dotCls: 'dot cc-lilac' });
+        else {
+          previewChips.push({ text: CATS[parsed.cat].name, dotCls: 'dot cc-' + CAT_COLOR[parsed.cat] });
+          previewChips.push({ text: ACCT_NAME[parsed.acct], dotCls: '' });
+        }
+        previewChips.push({ text: parsed.day, dotCls: '' });
+        previewNotes = parsed.notes.map((t) => ({ text: t }));
+        if (power && parsed.type === 'expense') previewNotes.push({ text: 'That is ' + Math.round((parsed.amount / Math.max(1, allowance)) * 100) + '% of today’s ' + rpc(allowance) + '.' });
+      } else {
+        previewNotes = [{ text: 'Add an amount: 18rb, 25.000, goceng, ceban or dua puluh ribu.' }];
+      }
+    }
+
+    // Balance check
+    let bcv = {
+      bcShown: false, bcTabs: [], bcIntro: '', bcShowIntro: false, bcCaps: '', bcAmountText: '0', bcCompare: '', bcBalanced: false, bcMissing: false, bcExtra: false,
+      bcGapText: '', bcGapShort: '', bcHasCombo: false, bcComboText: '', bcComboBtn: '', bcSugg: [], bcTopupLabel: '', bcFoot: '', bkeys: [],
+      bcLogCombo: () => {}, bcLogRest: () => {}, bcLogTopup: () => {}, bcLogIncome: () => {},
+    };
+    if (s.bc) {
+      const isCard = s.bc === 'visa';
+      const duit = isCard ? -bal.visa : bal[s.bc];
+      const real = s.bcAmount;
+      const gap = real > 0 ? (isCard ? real - duit : duit - real) : null;
+      const cands = balanceCandidates(s.bc, history);
+      const combo = gap > 0 ? bestCombo(cands, gap) : null;
+      const tab = BC_TABS.find((t) => t.id === s.bc);
+      const topFrom = s.bc === 'bca' ? 'cash' : 'bca';
+      bcv = {
+        bcShown: true,
+        bcTabs: BC_TABS.map((t) => ({ label: t.label, on: t.id === s.bc, cls: 'tab' + (t.id === s.bc ? ' tab-on' : ''), pick: () => this.setState({ bc: t.id, bcAmount: 0 }) })),
+        bcShowIntro: real === 0,
+        bcIntro: tab.hint + (s.added.some((t) => t.fromBc && t.acct === s.bc) ? '' : ' Demo: try ' + num(isCard ? duit + tab.demoGap : duit - tab.demoGap) + '.'),
+        bcCaps: isCard ? 'Visa · amount you owe' : ACCT_NAME[s.bc] + ' · balance in your app',
+        bcAmountText: num(real),
+        bcCompare: (isCard ? 'Duit thinks you owe ' : 'Duit thinks you have ') + rp(duit) + (real > 0 ? ' · your app says ' + rp(real) : ''),
+        bcBalanced: gap === 0,
+        bcMissing: gap > 0,
+        bcExtra: gap != null && gap < 0,
+        bcGapText: gap > 0 ? rp(gap) + ' went out without being logged.' : gap < 0 ? rp(-gap) + ' more than Duit expected.' : '',
+        bcGapShort: gap > 0 ? rpc(gap) : '',
+        bcHasCombo: !!combo,
+        bcComboText: combo ? 'Looks like ' + combo.map((c) => c.title + ' ' + num(c.amount)).join(' + ') + ' = exact match.' : '',
+        bcComboBtn: combo && combo.length > 1 ? 'Log all ' + combo.length : 'Log it',
+        bcLogCombo: () => combo && this.logFromBalance(combo),
+        bcSugg: cands.filter((c) => gap > 0 && c.amount <= gap).map((c) => ({
+          label: c.title + ' · ' + num(c.amount),
+          aria: 'Log ' + c.title + ' ' + rp(c.amount),
+          dotCls: 'dot cc-' + CAT_COLOR[c.cat],
+          pick: () => this.logFromBalance([c]),
+        })),
+        bcLogRest: () => gap > 0 && this.logFromBalance([{ title: 'Unlogged spending', amount: gap, cat: 'other' }]),
+        bcTopupLabel: 'Top up from ' + ACCT_NAME[topFrom],
+        bcLogTopup: () => gap < 0 && this.logFromBalance([{ type: 'transfer', title: 'Top up ' + ACCT_NAME[s.bc], amount: -gap, from: topFrom, to: s.bc }]),
+        bcLogIncome: () => gap < 0 && this.logFromBalance([{ type: 'income', title: 'Unlogged income', amount: -gap, cat: 'otherin' }]),
+        bkeys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '000', '0', 'del'].map((k) => ({
+          label: k === 'del' ? 'DEL' : k,
+          aria: k === 'del' ? 'Delete last digit' : k,
+          cls: 'key' + (k === 'del' ? ' key-sm' : ''),
+          press: () => this.pressBalance(k),
+        })),
+        bcFoot: gap == null ? 'Type the balance with the keypad.' : gap === 0 ? 'All good. Duit matches your app.' : 'Tap a guess, or log the rest.',
+      };
+    }
+
+    // Payday split
+    const splitSum = SPLIT_ROWS.reduce((a, r) => a + s.split[r.id], 0);
+    const spend = SALARY - splitSum;
+    const splitRows = SPLIT_ROWS.map((r) => ({
+      label: r.label,
+      icon: ICONS[r.icon],
+      tileCls: 'tile cc-' + r.color,
+      amtText: rp(s.split[r.id]),
+      decAria: 'Less for ' + r.label,
+      incAria: 'More for ' + r.label,
+      dec: () => this.setState((st) => ({ split: Object.assign({}, st.split, { [r.id]: Math.max(0, st.split[r.id] - 250000) }) })),
+      inc: () => this.setState((st) => ({ split: Object.assign({}, st.split, { [r.id]: st.split[r.id] + 250000 }) })),
+    }));
+
+    // Worth it?
+    const pendingWorth = WORTH.filter((x) => !s.rated[x.id]);
+    const curWorth = s.rating ? WORTH.find((x) => x.id === s.rating.id) : pendingWorth[0];
+    const worthSum = WORTH.filter((x) => s.rated[x.id] === 'worth').reduce((a, x) => a + x.amount, 0);
+    const regretList = WORTH.filter((x) => s.rated[x.id] === 'regret');
+    const regretSum = regretList.reduce((a, x) => a + x.amount, 0);
+    const sepadan = curWorth
+      ? {
+          has: true, done: false,
+          title: curWorth.title,
+          sub: CATS[curWorth.cat].name + ' · ' + curWorth.when,
+          amtText: num(curWorth.amount),
+          icon: ICONS[CATS[curWorth.cat].icon],
+          tileCls: 'tile cc-' + CAT_COLOR[curWorth.cat],
+          stampWorth: !!(s.rating && s.rating.v === 'worth'),
+          stampRegret: !!(s.rating && s.rating.v === 'regret'),
+          yes: () => this.rate(curWorth.id, 'worth'),
+          no: () => this.rate(curWorth.id, 'regret'),
+          doneText: '',
+          progress: (WORTH.length - pendingWorth.length + (s.rating ? 0 : 1)) + ' of ' + WORTH.length + '. Nyesel means regret. Your answers build the Worth it? report in Insights.',
+        }
+      : {
+          has: false, done: true, title: '', sub: '', amtText: '', icon: '', tileCls: 'tile', stampWorth: false, stampRegret: false,
+          yes: () => {}, no: () => {}, progress: '',
+          doneText: 'All caught up: ' + (WORTH.length - regretList.length) + ' worth it, ' + regretList.length + ' nyesel. New purchases over Rp 100rb show up here a day later.',
+        };
+
+    // Habit time machine
+    const habits = HABITS.map((h) => {
+      const freq = s.habitFreq[h.id] != null ? s.habitFreq[h.id] : h.perWeek;
+      const yearNow = h.perWeek * h.price * 52;
+      const yearNew = freq * h.price * 52;
+      const saved = yearNow - yearNew;
+      const open = s.habitOpen === h.id;
+      const months = saved > 0 ? Math.ceil(3000000 / (saved / 12)) : 0;
+      return {
+        title: h.title,
+        icon: ICONS[CATS[h.cat].icon],
+        tileCls: 'tile cc-' + CAT_COLOR[h.cat],
+        open,
+        sub: h.perWeek + '× a week · ' + num(h.price) + ' each',
+        yearText: rpc(yearNow) + '/yr',
+        freq,
+        freqText: freq + '×',
+        aria: 'How many times a week for ' + h.title,
+        setFreq: (e) => { const v = Number(e.target.value); this.setState((st) => ({ habitFreq: Object.assign({}, st.habitFreq, { [h.id]: v }) })); },
+        toggle: () => this.setState({ habitOpen: open ? null : h.id }),
+        result: freq === h.perWeek ? 'Drag the slider to change how often.' : saved > 0 ? 'At ' + freq + '× a week: ' + rpc(yearNew) + '/yr. Saves ' + rpc(saved) + ' a year.' : 'At ' + freq + '× a week: ' + rpc(-saved) + ' more a year.',
+        goal: saved > 0 ? 'That is ' + inUnit(saved, 'mie', mieNow) + ' of mie ayam, or a Bali trip (Rp 3 jt) in ' + months + (months === 1 ? ' month.' : ' months.') : '',
+      };
+    });
+
+    if (!s.err && s.amount > 0) {
+      if (power && s.ctype === 'expense') statusText += ' It’s ' + Math.round((s.amount / Math.max(1, allowance)) * 100) + '% of today’s ' + rpc(allowance) + '.';
+      else if (s.unit !== 'rp') statusText += ' ≈ ' + inUnit(s.amount, s.unit, mieNow) + '.';
+    }
+
+    const alert = s.alert ? ALERTS[s.alert] : null;
+    const screens = { home: ['Overview', 'home'], activity: ['Activity', 'activity'], insights: ['Insights', 'chart'], more: ['Control Panels', 'panel'] };
+    const tbCls = (id) => 'tb' + (s.screen === id ? ' tb-on' : '');
+    const cur = (id) => (s.screen === id ? 'page' : undefined);
+
+    return {
+      ic: ICONS,
+      rootCls: rootCls + (tt.power ? ' power' : ''),
+      setContent: (el) => { this.contentEl = el; },
+      whereName: screens[s.screen][0],
+      whereIcon: ICONS[screens[s.screen][1]],
+
+      isHome: s.screen === 'home',
+      isActivity: s.screen === 'activity',
+      isInsights: s.screen === 'insights',
+      isMore: s.screen === 'more',
+      goHome: () => this.go('home'),
+      goActivity: () => this.go('activity'),
+      goInsights: () => this.go('insights'),
+      goMore: () => this.go('more'),
+      tb: { home: tbCls('home'), activity: tbCls('activity'), insights: tbCls('insights'), more: tbCls('more') },
+      cur: { home: cur('home'), activity: cur('activity'), insights: cur('insights'), more: cur('more') },
+
+      menuOpen: !!s.menu,
+      menuFile: s.menu === 'file',
+      menuView: s.menu === 'view',
+      mbFileCls: 'mb' + (s.menu === 'file' ? ' mb-on' : ''),
+      mbViewCls: 'mb' + (s.menu === 'view' ? ' mb-on' : ''),
+      toggleFile: () => this.setState({ menu: s.menu === 'file' ? null : 'file' }),
+      toggleView: () => this.setState({ menu: s.menu === 'view' ? null : 'view' }),
+      closeMenus: () => this.setState({ menu: null }),
+
+      ...bcv,
+      w: { net: win('net'), month: win('month'), budget: win('budget'), bills: win('bills'), recent: win('recent'), tt: win('tt'), term: win('term'), worth: win('worth') },
+      tt,
+      mbattCls: 'mbatt' + (tt.power ? ' mbatt-low' : ''),
+      openBalanceDefault: () => this.openBalance('gopay'),
+      closeBalance: () => this.setState({ bc: null }),
+      simulatePayday: () => this.simulatePayday(),
+      boot: s.boot,
+      splitShown: s.splitOpen,
+      splitStamp: s.splitStamp,
+      splitRows,
+      salaryCaps: 'Salary · ' + pd.date,
+      spendText: rp(spend),
+      spendCls: 'spend' + (spend < 0 ? ' spend-neg' : ''),
+      spendPerDay: spend < 0 ? 'Over by ' + rp(-spend) + '. Lower something above before you split.' : '≈ ' + rp(Math.floor(spend / pd.nextDays)) + ' a day until ' + pd.next + '.',
+      splitCls: 'win sheetwin' + (s.shake === 'split' ? ' shake' : ''),
+      closeSplit: () => this.setState({ splitOpen: false }),
+      confirmSplit: () => this.confirmSplit(spend),
+      paydayOpts: PAYDAYS.map((o) => ({ label: o.label, hint: 'next: ' + o.date, on: s.payday === o.val, radioCls: 'radio' + (s.payday === o.val ? ' radio-on' : ''), pick: () => this.setState({ payday: o.val }) })),
+      termLines: s.term.map((l) => ({ cls: 'tline tl-' + l.k, text: l.t })),
+      cmd: s.cmd,
+      onCmd: (e) => this.setState({ cmd: e.target.value.slice(0, 80) }),
+      onCmdKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); this.runCommand(); } },
+      runCmd: () => this.runCommand(),
+      runLabel: asking ? 'Ask' : 'Log',
+      clearTerm: () => this.setState({ cmd: '', term: [{ k: 'dim', t: 'Cleared. Type help for commands.' }] }),
+      hasPreview: !!parsed,
+      previewChips,
+      previewNotes,
+      showExamples: !cmdTrim,
+      examples: EXAMPLES.map((t) => ({ text: t, pick: () => this.setState({ cmd: t }) })),
+      termStamp: s.termStamp,
+      sepadan,
+      worthSumText: rpc(worthSum),
+      regretSumText: rpc(regretSum),
+      worthReportNote: regretList.length ? 'Nyesel list: ' + regretList.map((x) => x.title).join(', ') + '. Next time, sleep on purchases like these.' : 'Rate purchases in the Sepadan? window on Overview to build this report.',
+      unitOpts: UNITS.map((u) => ({ label: u.label, on: s.unit === u.val, cls: 'tab' + (s.unit === u.val ? ' tab-on' : ''), pick: () => this.setState({ unit: u.val }) })),
+      unitNote: s.unit === 'mie' ? '1 bowl = ' + rp(mieNow) + ', the latest mie ayam price in your history.' : s.unit === 'jam' ? '1 work hour = ' + rp(HOUR_PRICE) + ' (salary ÷ 173 hours).' : 'Switch units to feel what the money means to you.',
+      spentUnitText: s.unit === 'rp' ? rp(totalSpent) : inUnit(totalSpent, s.unit, mieNow),
+      basketText: 'Your basket: +' + pr.basket + '%',
+      basketNote: 'Prices of things you buy again and again, read from your titles over the last 12 months. Log "mie ayam 22rb" in the Terminal and watch it change.',
+      prices: pr.rows.map((r) => ({
+        title: r.title,
+        icon: ICONS[CATS[r.cat].icon],
+        tileCls: 'tile cc-' + CAT_COLOR[r.cat],
+        range: num(r.first) + ' → ' + num(r.last) + ' since Sep 2025',
+        bars: r.bars,
+        pctText: (r.pct > 0 ? '+' : '') + r.pct + '%',
+        pctCls: 'pct ' + (r.pct > 0 ? 'pct-up' : 'pct-flat'),
+      })),
+      habits,
+      worthText: rp(worth),
+      accounts,
+      spentText: rp(totalSpent),
+      spentShort: rpc(totalSpent),
+      incomeShort: rpc(income),
+      paceText: 'Averaging ' + rp(Math.round(totalSpent / 24)) + ' a day · 7 days left in September',
+      budgets,
+      bills,
+      recent: all.slice(0, 5).map((t) => this.rowFor(t)),
+
+      query: s.query,
+      onQuery: (e) => this.setState({ query: e.target.value }),
+      filters: [
+        { id: 'all', label: 'All' },
+        { id: 'out', label: 'Money out' },
+        { id: 'in', label: 'Money in' },
+      ].map((f) => ({ label: f.label, on: s.filter === f.id, cls: 'tab' + (s.filter === f.id ? ' tab-on' : ''), pick: () => this.setState({ filter: f.id }) })),
+      groups,
+      noResults: groups.length === 0,
+
+      slices,
+      ticks,
+      cols,
+      chartAria: 'Income and spending, April to September 2026. ' + cols.map((c) => c.aria).join('. '),
+      chartStatus: monthsFull[sm.m] + ' 2026 · in ' + rpc(sm.inc) + ' · out ' + rpc(sm.exp) + ' · net ' + (net >= 0 ? '+' : '-') + compact(net),
+      avgText: rp(Math.round(totalSpent / 24)),
+      countText: String(all.length),
+
+      themeOpts: THEMES.map((t) => {
+        const on = (s.theme || p.theme || 'auto') === t.val;
+        return { label: t.label, hint: t.hint, on, radioCls: 'radio' + (on ? ' radio-on' : ''), pick: () => this.setState({ theme: t.val, menu: null }) };
+      }),
+      paletteOpts: PALETTES.map((o) => {
+        const on = palette === o.val;
+        return {
+          label: o.label,
+          aria: o.label + ' colors, ' + o.hint,
+          on,
+          radioCls: 'radio' + (on ? ' radio-on' : ''),
+          stripCls: 'pstrip pstrip-' + o.val,
+          pick: () => this.setState({ palette: o.val, menu: null }),
+        };
+      }),
+      texture,
+      toggleTexture: () => this.setState({ texture: !texture }),
+      faceId: s.faceId,
+      toggleFace: () => this.setState({ faceId: !s.faceId }),
+      openAbout: () => this.setState({ alert: 'about', menu: null }),
+      openExport: () => this.setState({ alert: 'export', menu: null }),
+      openConnect: () => this.setState({ alert: 'connect', menu: null }),
+      openErase: () => this.setState({ alert: 'erase', menu: null }),
+
+      newExpense: () => this.openComposer('expense'),
+      newIncome: () => this.openComposer('income'),
+      newTransfer: () => this.openComposer('transfer'),
+      zoomOpen: s.comp === 'opening',
+      zoomClose: s.comp === 'closing',
+      compShown: s.comp === 'open' || s.comp === 'stamping',
+      stamping: s.comp === 'stamping',
+      compCls: 'win composer' + (s.shake === 'composer' ? ' shake' : ''),
+      compTitle,
+      ctypes,
+      ctypeLabel: (isTransfer ? 'Transfer' : s.ctype === 'income' ? 'Income' : 'Expense') + (s.title.trim() ? ' · ' + s.title.trim() : ''),
+      title: s.title,
+      hasTitle: s.title.length > 0,
+      onTitle: (e) => this.setState({ title: e.target.value.slice(0, 40), err: '' }),
+      clearTitle: () => this.setState({ title: '' }),
+      titlePlaceholder: placeholders[s.ctype],
+      sugg,
+      hasSugg: sugg.length > 0,
+      suggCap: tq ? 'Matches' : 'Recent',
+      amountText: num(s.amount),
+      isTransfer,
+      notTransfer: !isTransfer,
+      cats,
+      fromName: ACCT_NAME[s.from],
+      toName: ACCT_NAME[s.to],
+      cycleFrom: () => this.setState({ from: this.cycle(['bca', 'cash', 'gopay', 'visa'], s.from), err: '' }),
+      cycleTo: () => this.setState({ to: this.cycle(['bca', 'cash', 'gopay', 'visa'], s.to), err: '' }),
+      acctName: 'Paid with ' + ACCT_NAME[s.acct],
+      cycleAcct: () => this.setState({ acct: this.cycle(PAY_ORDER, s.acct) }),
+      dayName: s.day,
+      cycleDay: () => this.setState({ day: s.day === 'Today' ? 'Yesterday' : 'Today' }),
+      keys,
+      statusText,
+      statusCls: 'cstatus' + (s.err ? ' cstatus-err' : ''),
+      closeComposer: () => this.closeComposer(),
+      save: () => this.save(),
+
+      alertShown: !!alert,
+      alertTitle: alert ? alert.title : '',
+      alertBody: alert ? alert.body : '',
+      alertIcon: alert ? ICONS[alert.icon] : '',
+      alertConfirm: !!(alert && alert.confirm),
+      alertInfo: !!(alert && !alert.confirm),
+      closeAlert: () => this.setState({ alert: null }),
+      confirmErase: () => this.setState({ alert: 'erased' }),
+    };
+  }
+}
+</script>
+</body>
+</html>
