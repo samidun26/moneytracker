@@ -9,3 +9,6 @@ coverage
 .DS_Store
 .vercel
 screenshots/tmp
+playwright-report
+test-results
+reports

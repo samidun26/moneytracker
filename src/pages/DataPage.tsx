@@ -33,8 +33,16 @@ export function DataPage() {
   }
 
   const onImport = async (file: File) => {
+    let parsed: unknown
     try {
-      const r = await importBackup(JSON.parse(await file.text()))
+      parsed = JSON.parse(await file.text())
+    } catch {
+      // Not JSON at all (a photo, a PDF…): don't show the parser's error text.
+      toast({ message: 'This file is not a Duit backup.', tone: 'error' })
+      return
+    }
+    try {
+      const r = await importBackup(parsed)
       toast({ message: `Restored: ${r.added} added, ${r.updated} updated` })
     } catch (e) {
       toast({ message: (e as Error).message || 'Could not read that file', tone: 'error' })
