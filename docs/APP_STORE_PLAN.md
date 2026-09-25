@@ -1,8 +1,10 @@
-# Duit — Native App Store Plan
+# Duit — Native App Store Plan (superseded)
+
+> **Superseded:** the project direction is now a full native **SwiftUI + SwiftData** rewrite, not a Capacitor wrapper around the web app. See [`docs/IOS_NATIVE_PLAN.md`](./IOS_NATIVE_PLAN.md) and [`/CLAUDE.md`](../CLAUDE.md) for the current plan. §6 below (Apple Developer Program, TestFlight, App Store Connect checklist) is still accurate and is referenced from the current plan — only the "wrap the web app" approach in the rest of this doc is no longer the plan.
 
 | | |
 |---|---|
-| **Status** | Proposed — not started |
+| **Status** | Superseded — kept for history, see banner above |
 | **Scope** | Ship the existing Duit codebase as a real App Store app, phased: you → friends (TestFlight) → public |
 | **Backend** | None to build. CloudKit (Apple's) replaces Supabase for the native app. |
 | **Companion to** | [`docs/PRD.md`](./PRD.md) — this doc only covers what changes to go native |
