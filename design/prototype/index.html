@@ -10,6 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Duit OS">
+<meta name="format-detection" content="telephone=no">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
@@ -21,31 +22,23 @@
     font-family: 'IBM Plex Mono', ui-monospace, monospace;
     -webkit-text-size-adjust: 100%;
   }
-  #stage {
-    position: fixed; inset: 0; box-sizing: border-box;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
-  #frame { position: absolute; overflow: hidden; }
-  #app { position: absolute; left: 0; top: 0; width: 390px; transform-origin: 0 0; -webkit-touch-callout: none; }
+  /* Phones: the app fills the screen at its real width, so text stays crisp. */
+  #frame { position: fixed; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; }
+  #app { position: absolute; inset: 0; -webkit-touch-callout: none; }
   #app * { touch-action: manipulation; }
+  /* Tablets and desktops: a phone-sized window in the middle of the screen. */
+  @media (min-width: 600px) {
+    #frame { left: 50%; top: 50%; width: 390px; height: min(844px, 100vh - 32px); transform: translate(-50%, -50%); border: 1px solid #5A5FA6; box-shadow: 6px 6px 0 #0A0B1C; }
+  }
+  .booting { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; letter-spacing: 0.08em; }
 </style>
 <style data-dc-after>
-  /* Moved after the prototype's own styles at boot so these win. The prototype was drawn on a fixed 390 × 844 board; let its height follow the phone. */
-  #app > .duit { height: 100% !important; }
-  #app .composer, #app .modalwin { height: auto !important; bottom: 8px; }
-  #app .sheetwin { max-height: calc(100% - 90px); overflow-y: auto; }
-  @keyframes zoomOpen {
-    0% { left: 160px; top: calc(var(--dc-h) - 57px); width: 70px; height: 48px; opacity: 1; }
-    99% { left: 8px; top: 58px; width: 371px; height: calc(var(--dc-h) - 66px); opacity: 1; }
-    100% { left: 8px; top: 58px; width: 371px; height: calc(var(--dc-h) - 66px); opacity: 0; }
-  }
-  @keyframes zoomClose {
-    0% { left: 8px; top: 58px; width: 371px; height: calc(var(--dc-h) - 66px); opacity: 1; }
-    99% { left: 160px; top: calc(var(--dc-h) - 57px); width: 70px; height: 48px; opacity: 1; }
-    100% { left: 160px; top: calc(var(--dc-h) - 57px); width: 70px; height: 48px; opacity: 0; }
-  }
-
-  .booting { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; letter-spacing: 0.08em; }
+  /* Moved after the prototype's own styles at boot so these win. */
+  #app > .duit { width: 100% !important; height: 100% !important; --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
+  /* While the iPhone keyboard is up, give its space to the content instead of the tab bar. */
+  #app.kb .taskbar, #app.kb .toast { display: none; }
+  #app.kb .content { bottom: 0; }
+  #app.kb .composer, #app.kb .modalwin { bottom: 8px; }
   #dc-error {
     position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 999; max-height: 50%; overflow: auto; margin: 0;
     padding: 12px; background: #2A1030; color: #FFD0D0; border: 1px solid #FF8FB8; font-size: 11px; white-space: pre-wrap;
@@ -53,52 +46,60 @@
 </style>
 </head>
 <body>
-<div id="stage">
-  <div id="frame">
-    <div id="app"><div class="booting">DUIT OS · loading…</div></div>
-  </div>
+<div id="frame">
+  <div id="app"><div class="booting">DUIT OS · loading…</div></div>
 </div>
 <script src="morphdom.min.js"></script>
 <script src="dc-lite.js"></script>
 <script>
   (function () {
-    var BASE_W = 390;
-    var stage = document.getElementById('stage');
     var frame = document.getElementById('frame');
     var app = document.getElementById('app');
+    var vv = window.visualViewport;
+    var wide = window.matchMedia('(min-width: 600px)');
+    var wasKb = false;
 
-    function px(v) { return parseFloat(v) || 0; }
-
-    function layout() {
-      var cs = getComputedStyle(stage);
-      var left = px(cs.paddingLeft), top = px(cs.paddingTop);
-      var w = stage.clientWidth - left - px(cs.paddingRight);
-      var h = stage.clientHeight - top - px(cs.paddingBottom);
-      var scale, height;
-      if (w < 600) {
-        // Phone: fill the screen edge to edge, the board grows or shrinks in height.
-        scale = w / BASE_W;
-        height = Math.max(560, h / scale);
-      } else {
-        // Tablet or desktop: show a phone-sized board, centred.
-        scale = Math.min(1.25, h / 844);
-        height = 844;
-      }
-      var fw = BASE_W * scale, fh = height * scale;
-      frame.style.width = fw + 'px';
-      frame.style.height = Math.min(fh, h) + 'px';
-      frame.style.left = left + Math.max(0, (w - fw) / 2) + 'px';
-      frame.style.top = top + Math.max(0, (h - Math.min(fh, h)) / 2) + 'px';
-      app.style.height = height + 'px';
-      app.style.transform = 'scale(' + scale + ')';
-      app.style.setProperty('--dc-h', height + 'px');
+    function isField(el) {
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.type !== 'range';
     }
 
-    layout();
-    window.addEventListener('resize', layout);
-    window.addEventListener('orientationchange', function () { setTimeout(layout, 250); });
-    // iOS only shows :active pressed states when a touch listener exists.
-    document.addEventListener('touchstart', function () {}, { passive: true });
+    // iOS keeps the layout viewport when the keyboard opens and pans the page instead.
+    // Pin the app to the visible area so the header stays put and the field stays in view.
+    function fit() {
+      if (!vv || wide.matches) return;
+      var kb = isField(document.activeElement) && window.innerHeight - vv.height > 120;
+      app.classList.toggle('kb', kb);
+      frame.style.height = kb ? vv.height + 'px' : '';
+      frame.style.top = kb ? vv.offsetTop + 'px' : '';
+      if (kb && !wasKb) {
+        // Only when the keyboard first opens, so scrolling afterwards is never pulled back.
+        var el = document.activeElement;
+        requestAnimationFrame(function () { el.scrollIntoView({ block: 'nearest' }); });
+      }
+      wasKb = kb;
+    }
+
+    if (vv) {
+      vv.addEventListener('resize', fit);
+      vv.addEventListener('scroll', fit);
+    }
+    document.addEventListener('focusin', function () { setTimeout(fit, 60); });
+    document.addEventListener('focusout', function () {
+      setTimeout(function () {
+        if (isField(document.activeElement)) return;
+        wasKb = false;
+        app.classList.remove('kb');
+        frame.style.height = '';
+        frame.style.top = '';
+        window.scrollTo(0, 0); // undo any pan iOS left behind
+      }, 60);
+    });
+
+    // Tapping outside a text field closes the keyboard, like a native app.
+    document.addEventListener('touchstart', function (e) {
+      var active = document.activeElement;
+      if (isField(active) && e.target.closest && !e.target.closest('button, input, label, a')) active.blur();
+    }, { passive: true });
 
     window.dcLite.load('Main.dc.html', app);
   })();
