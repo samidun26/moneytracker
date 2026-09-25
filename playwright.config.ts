@@ -35,7 +35,8 @@ export default defineConfig({
   projects: [
     { name: 'iphone', use: { ...devices['iPhone 13'], browserName: 'chromium' } },
     { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    ...(CI ? [{ name: 'iphone-webkit', use: { ...devices['iPhone 13'] } }] : []),
+    // Real Safari engine. On Linux CI it runs about twice as slow as Chromium, so it gets twice the time.
+    ...(CI ? [{ name: 'iphone-webkit', timeout: 60_000, use: { ...devices['iPhone 13'] } }] : []),
   ],
   webServer: {
     command: `npm run build && npx vite preview --host localhost --port ${PORT} --strictPort`,

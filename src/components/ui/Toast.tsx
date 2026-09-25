@@ -11,9 +11,15 @@ interface ToastOptions {
 }
 
 const ToastContext = createContext<(t: ToastOptions) => void>(() => {})
+const DismissToastContext = createContext<() => void>(() => {})
 
 export function useToast() {
   return useContext(ToastContext)
+}
+
+/** Hides the current toast, if any. */
+export function useDismissToast() {
+  return useContext(DismissToastContext)
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -26,9 +32,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     timer.current = setTimeout(() => setToast(null), t.duration ?? (t.action ? 5000 : 2600))
   }, [])
 
+  const dismiss = useCallback(() => {
+    clearTimeout(timer.current)
+    setToast(null)
+  }, [])
+
   return (
     <ToastContext.Provider value={show}>
-      {children}
+      <DismissToastContext.Provider value={dismiss}>{children}</DismissToastContext.Provider>
       {createPortal(
         <div
           aria-live="polite"

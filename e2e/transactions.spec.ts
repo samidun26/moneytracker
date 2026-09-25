@@ -50,6 +50,16 @@ test.describe('Adding transactions', () => {
     await expect(amountDisplay(sheet)).toHaveText(/Rp\s*0$/)
   })
 
+  test('the last "Saved" toast gets out of the way of the next entry', async ({ page }) => {
+    await addTransaction(page, { amount: 32_000, category: 'Coffee & Snacks' })
+    const sheet = await openComposer(page)
+    // Left up, it sits right over the keypad's 0 key on phones and swallows taps.
+    // Checked once, not retried: the toast would go away on its own after 2.6s.
+    expect(await page.getByRole('status').count()).toBe(0)
+    await typeAmount(sheet, 25_000)
+    await expect(amountDisplay(sheet)).toHaveText(/Rp\s*25\.000$/)
+  })
+
   test('will not save without an amount or a category', async ({ page }) => {
     const sheet = await openComposer(page)
     const save = sheet.getByRole('button', { name: 'Save', exact: true })

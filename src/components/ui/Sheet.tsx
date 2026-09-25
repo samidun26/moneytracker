@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
+import { useDismissToast } from './Toast'
 
 interface SheetProps {
   open: boolean
@@ -42,9 +43,13 @@ export function Sheet({
   const restoreFocus = useRef<HTMLElement | null>(null)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const dismissToast = useDismissToast()
 
   useEffect(() => {
     if (open) {
+      // The last action's toast ("Saved · Rp 25.000") would sit on top of this
+      // sheet's controls: on phones, right over the keypad's 0 key.
+      dismissToast()
       restoreFocus.current = document.activeElement as HTMLElement
       setMounted(true)
       setClosing(false)
