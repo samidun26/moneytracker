@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Duit OS prototype</title>
+<meta name="description" content="Interactive retro prototype of Duit, a personal money tracker.">
+<meta name="theme-color" content="#141633">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Duit OS">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+  html, body { height: 100%; }
+  body {
+    margin: 0; position: fixed; inset: 0; overflow: hidden; overscroll-behavior: none;
+    background: #141633; color: #E6E3F4;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    -webkit-text-size-adjust: 100%;
+  }
+  /* Phones: the app fills the screen at its real width, so text stays crisp. */
+  #frame { position: fixed; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; }
+  #app { position: absolute; inset: 0; -webkit-touch-callout: none; }
+  #app * { touch-action: manipulation; }
+  /* Tablets and desktops: a phone-sized window in the middle of the screen. */
+  @media (min-width: 600px) {
+    #frame { left: 50%; top: 50%; width: 390px; height: min(844px, 100vh - 32px); transform: translate(-50%, -50%); border: 1px solid #5A5FA6; box-shadow: 6px 6px 0 #0A0B1C; }
+  }
+  .booting { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 14px; letter-spacing: 0.08em; }
+</style>
+<style data-dc-after>
+  /* Moved after the prototype's own styles at boot so these win. */
+  #app > .duit { width: 100% !important; height: 100% !important; --sat: env(safe-area-inset-top); --sab: env(safe-area-inset-bottom); }
+  /* While the iPhone keyboard is up, give its space to the content instead of the tab bar. */
+  #app.kb .taskbar, #app.kb .toast { display: none; }
+  #app.kb .content { bottom: 0; }
+  #app.kb .composer, #app.kb .modalwin { bottom: 8px; }
+  #dc-error {
+    position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 999; max-height: 50%; overflow: auto; margin: 0;
+    padding: 12px; background: #2A1030; color: #FFD0D0; border: 1px solid #FF8FB8; font-size: 11px; white-space: pre-wrap;
+  }
+</style>
+</head>
+<body>
+<div id="frame">
+  <div id="app"><div class="booting">DUIT OS · loading…</div></div>
+</div>
+<script src="morphdom.min.js"></script>
+<script src="dc-lite.js"></script>
+<script>
+  (function () {
+    var frame = document.getElementById('frame');
+    var app = document.getElementById('app');
+    var vv = window.visualViewport;
+    var wide = window.matchMedia('(min-width: 600px)');
+    var wasKb = false;
+
+    function isField(el) {
+      return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.type !== 'range';
+    }
+
+    // iOS keeps the layout viewport when the keyboard opens and pans the page instead.
+    // Pin the app to the visible area so the header stays put and the field stays in view.
+    function fit() {
+      if (!vv || wide.matches) return;
+      var kb = isField(document.activeElement) && window.innerHeight - vv.height > 120;
+      app.classList.toggle('kb', kb);
+      frame.style.height = kb ? vv.height + 'px' : '';
+      frame.style.top = kb ? vv.offsetTop + 'px' : '';
+      if (kb && !wasKb) {
+        // Only when the keyboard first opens, so scrolling afterwards is never pulled back.
+        var el = document.activeElement;
+        requestAnimationFrame(function () { el.scrollIntoView({ block: 'nearest' }); });
+      }
+      wasKb = kb;
+    }
+
+    if (vv) {
+      vv.addEventListener('resize', fit);
+      vv.addEventListener('scroll', fit);
+    }
+    document.addEventListener('focusin', function () { setTimeout(fit, 60); });
+    document.addEventListener('focusout', function () {
+      setTimeout(function () {
+        if (isField(document.activeElement)) return;
+        wasKb = false;
+        app.classList.remove('kb');
+        frame.style.height = '';
+        frame.style.top = '';
+        window.scrollTo(0, 0); // undo any pan iOS left behind
+      }, 60);
+    });
+
+    // Tapping outside a text field closes the keyboard, like a native app.
+    document.addEventListener('touchstart', function (e) {
+      var active = document.activeElement;
+      if (isField(active) && e.target.closest && !e.target.closest('button, input, label, a')) active.blur();
+    }, { passive: true });
+
+    window.dcLite.load('Main.dc.html', app);
+  })();
+</script>
+</body>
+</html>
