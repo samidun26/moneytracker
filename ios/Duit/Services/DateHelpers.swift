@@ -10,9 +10,10 @@ import Foundation
 /// weekday/month names change with the device's language, which is not
 /// what the reference app does.
 ///
-/// Only what Add Transaction and Transaction History need is ported here;
-/// month-range helpers (monthKey, shiftMonth, monthBounds, …) belong to the
-/// Budgets/Insights phase and aren't needed yet.
+/// Only what Add Transaction and Transaction History need is ported here
+/// (including month dividers, since History groups by month too).
+/// Budget/Insights-only helpers (shiftMonth, monthBounds, ordinal, timeAgo,
+/// …) belong to that phase and aren't needed yet.
 enum DateHelpers {
     private static let calendar: Calendar = {
         var c = Calendar(identifier: .gregorian)
@@ -47,6 +48,16 @@ enum DateHelpers {
         let day = calendar.component(.day, from: date)
         let month = String(months[calendar.component(.month, from: date) - 1].prefix(3))
         return "\(day) \(month)"
+    }
+
+    static func isSameMonth(_ a: Date, _ b: Date) -> Bool {
+        calendar.component(.month, from: a) == calendar.component(.month, from: b)
+            && calendar.component(.year, from: a) == calendar.component(.year, from: b)
+    }
+
+    /// "September 2026" — used for month dividers in Transaction History.
+    static func formatMonth(_ date: Date) -> String {
+        "\(months[calendar.component(.month, from: date) - 1]) \(calendar.component(.year, from: date))"
     }
 
     /// "Today", "Yesterday", "Tomorrow", or "Wed, 24 Sep" (adds the year if
