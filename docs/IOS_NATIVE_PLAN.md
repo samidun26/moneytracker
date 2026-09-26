@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | MVP not started — this doc is the live roadmap |
+| **Status** | First vertical slice source-complete (Models, Services, Components, Add Transaction, Transaction History) — waiting on Xcode project creation (your Mac) to actually build and verify any of it |
 | **Supersedes** | [`docs/APP_STORE_PLAN.md`](./APP_STORE_PLAN.md)'s Capacitor-wrap approach (its Apple/App-Store logistics sections are still valid, cross-referenced below) |
 | **Governing rules** | [`/CLAUDE.md`](../CLAUDE.md) — philosophy, stack, and "rules of engagement" for this project. Read that first; this doc is the roadmap and status. |
 | **Supervisor** | You. I propose and explain before implementing; you decide on anything that changes product scope. |
@@ -146,11 +146,11 @@ Modern Xcode (15+) supports "file system synchronized groups" — if you create 
 
 Per the governing guide's own instruction — don't build the whole app, build the first vertical slice:
 
-1. Confirm the open scope question in §3 (Accounts + App Lock: MVP or deferred).
-2. Define `Transaction` and `Category` as Swift/SwiftData models.
-3. Write the folder scaffold under `ios/Duit/` (empty structure + these two models + a `CurrencyFormatter`/`DateHelpers` port from `src/lib/`).
-4. You create the Xcode project shell on your Mac and point it at `ios/Duit/`.
-5. Implement Add Transaction → save via SwiftData → show in Transaction History.
-6. Verify: add a transaction, quit the app, reopen — it's still there.
+1. ~~Confirm the open scope question in §3 (Accounts + App Lock: MVP or deferred).~~ Not explicitly confirmed — proceeding on the recommended default (deferred) since it wasn't overridden; still your call to correct.
+2. **Done** — `Transaction`, `Category`, `TransactionType`, `CategoryColor` as Swift/SwiftData models in `ios/Duit/Models/`.
+3. **Done** — folder scaffold under `ios/Duit/` (`App/`, `Models/`, `Services/`) plus a full `CurrencyFormatter` port (verified by hand against `money.test.ts`'s exact expected strings) and a trimmed `DateHelpers` port (only what Add Transaction/History need — see file header for what's deferred and why). Matching XCTest files are in `ios/DuitTests/`, ported from the web app's own test cases, but **unverified** — this container has no Swift toolchain to actually run them.
+4. **Next, on your Mac**: create the Xcode project (File → New → Project → iOS App, Interface: SwiftUI, Storage: SwiftData, name "Duit"), point its source at (or copy in) `ios/Duit/`, and add `ios/DuitTests/` as its test target. Run the unit tests first — that's the fastest way to catch anything that doesn't compile or doesn't match before touching the UI.
+5. **Done, unverified** — `ios/Duit/Components/{IconBadge,Keypad}.swift`, `ios/Duit/Features/Transactions/{AddTransactionView,TransactionHistoryView,TransactionRow}.swift`, and `ios/Duit/Services/DefaultCategories.swift` (seeds the same default category list as `src/db/seed.ts` on first launch, since Categories CRUD — MVP item 6 — isn't built yet and Add Transaction needs something to pick from). `DuitApp.swift` now boots straight into Transaction History with a `+` button, matching the current MVP root until Dashboard exists.
+6. Verify on your Mac: build, run in Simulator, add an income and an expense, quit the app, reopen — both should still be there. Report back whatever breaks first; SwiftUI/SwiftData errors are much faster to fix from an actual compiler error than from more guessing here.
 
 **Definition of done for this slice**: a user can manually create an income or expense transaction, close the app, reopen it, and still see the transaction. Nothing past that (Dashboard, Statistics, etc.) starts until this is solid.
