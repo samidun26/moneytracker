@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | First vertical slice source-complete (Models, Services, Components, Add Transaction, Transaction History) — waiting on Xcode project creation (your Mac) to actually build and verify any of it |
+| **Status** | First vertical slice source-complete (Models, Services, Components, Add Transaction, Transaction History). **Compiles and `DuitTests` pass in CI** (§9); the actual flow — add → quit → reopen — is still unverified and needs a human in Simulator or on a device |
 | **Supersedes** | [`docs/APP_STORE_PLAN.md`](./APP_STORE_PLAN.md)'s Capacitor-wrap approach (its Apple/App-Store logistics sections are still valid, cross-referenced below) |
 | **Governing rules** | [`/CLAUDE.md`](../CLAUDE.md) — philosophy, stack, and "rules of engagement" for this project. Read that first; this doc is the roadmap and status. |
 | **Supervisor** | You. I propose and explain before implementing; you decide on anything that changes product scope. |
@@ -159,7 +159,11 @@ Per the governing guide's own instruction — don't build the whole app, build t
 
 `ios/project.yml` (XcodeGen spec) + `.github/workflows/ios.yml` give this repo a Swift compiler it otherwise lacks: on every push touching `ios/**`, a GitHub-hosted macOS runner generates the Xcode project, runs `DuitTests` on an iPhone simulator, and builds an **unsigned** `Duit-unsigned.ipa`, uploaded as a workflow artifact (14-day retention). Compiler errors from the first run are the fastest way to fix the "unverified" code listed in §8.
 
+**First run (2026-10-03, [run 37100925048](https://github.com/samidun26/moneytracker/actions/runs/37100925048)):** both jobs green — the app compiles for a Release device build and for the iOS 26.5 simulator, `DuitTests` passed, and the IPA artifact was produced. CI runs xcodebuild with `-quiet`, so the log doesn't show a per-test count; drop `-quiet` from the test step if you want one.
+
 What this does **not** give you:
+
+- **Proof the app behaves correctly.** A green build and passing unit tests don't cover the UI or SwiftData persistence. §8.6 (add an income and an expense, quit, reopen) still has to be done by hand.
 
 - **An installable app.** iOS only runs signed code. The unsigned IPA must be re-signed with a free Apple ID via Sideloadly/AltStore (device-registered, expires after 7 days, max 3 sideloaded apps), or replaced by a signed TestFlight build in Phase 5 (needs the $99/yr Developer Program).
 - **Private downloads.** The repo is public, so artifacts are downloadable by any signed-in GitHub user.
