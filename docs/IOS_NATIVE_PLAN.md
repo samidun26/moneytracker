@@ -154,3 +154,15 @@ Per the governing guide's own instruction — don't build the whole app, build t
 6. Verify on your Mac: build, run in Simulator, add an income and an expense, quit the app, reopen — both should still be there. Report back whatever breaks first; SwiftUI/SwiftData errors are much faster to fix from an actual compiler error than from more guessing here.
 
 **Definition of done for this slice**: a user can manually create an income or expense transaction, close the app, reopen it, and still see the transaction. Nothing past that (Dashboard, Statistics, etc.) starts until this is solid.
+
+## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
+
+`ios/project.yml` (XcodeGen spec) + `.github/workflows/ios.yml` give this repo a Swift compiler it otherwise lacks: on every push touching `ios/**`, a GitHub-hosted macOS runner generates the Xcode project, runs `DuitTests` on an iPhone simulator, and builds an **unsigned** `Duit-unsigned.ipa`, uploaded as a workflow artifact (14-day retention). Compiler errors from the first run are the fastest way to fix the "unverified" code listed in §8.
+
+What this does **not** give you:
+
+- **An installable app.** iOS only runs signed code. The unsigned IPA must be re-signed with a free Apple ID via Sideloadly/AltStore (device-registered, expires after 7 days, max 3 sideloaded apps), or replaced by a signed TestFlight build in Phase 5 (needs the $99/yr Developer Program).
+- **Private downloads.** The repo is public, so artifacts are downloadable by any signed-in GitHub user.
+- **A final bundle ID.** `com.samidun26.duit` is a placeholder — set the real one before Phase 5.
+
+The generated `Duit.xcodeproj` is gitignored. On a Mac, `brew install xcodegen && cd ios && xcodegen generate` replaces the manual "create project in Xcode" step in §7/§8.4.

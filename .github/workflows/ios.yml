@@ -1,0 +1,76 @@
+name: iOS
+
+# Compiles the native app and runs its unit tests on a macOS runner (this repo's
+# dev container has no Swift toolchain), and produces an UNSIGNED .ipa as a
+# workflow artifact. Unsigned = not installable as-is: it must be re-signed
+# (Sideloadly / AltStore) or replaced by a signed TestFlight build later.
+# See docs/IOS_NATIVE_PLAN.md §9.
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ios
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: brew install xcodegen && xcodegen generate
+      - name: Run unit tests on an iPhone simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          runtimes = json.load(sys.stdin)['devices']
+          for key in sorted(k for k in runtimes if 'iOS' in k)[::-1]:
+              for d in runtimes[key]:
+                  if d['name'].startswith('iPhone'):
+                      print(d['udid']); sys.exit()
+          sys.exit('no iPhone simulator found')
+          ")
+          echo "Using simulator $UDID"
+          xcodebuild test -quiet \
+            -project Duit.xcodeproj -scheme Duit \
+            -destination "id=$UDID" \
+            CODE_SIGNING_ALLOWED=NO
+
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: brew install xcodegen && xcodegen generate
+      - name: Build unsigned Release for device
+        run: |
+          xcodebuild build -quiet \
+            -project Duit.xcodeproj -scheme Duit \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Package .ipa
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Duit.app Payload/
+          zip -qry Duit-unsigned.ipa Payload
+          ls -lh Duit-unsigned.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Duit-unsigned-ipa
+          path: ios/Duit-unsigned.ipa
+          retention-days: 14
