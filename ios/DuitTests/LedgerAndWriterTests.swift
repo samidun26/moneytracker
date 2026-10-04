@@ -3,7 +3,7 @@ import SwiftData
 @testable import Duit
 
 /// The glue between the database and the screens: the Ledger snapshot (the
-/// battery and the To do list), wallet defaults, saving Terminal lines, and
+/// battery and the To do list), wallet defaults, and
 /// bills that post themselves exactly once. Runs on an in-memory store.
 final class LedgerAndWriterTests: XCTestCase {
     private lazy var container = Store.makeInMemoryContainer()
@@ -154,44 +154,6 @@ final class LedgerAndWriterTests: XCTestCase {
         let l = try ledger(try seededContext(), payday: 24) // payday is today
         XCTAssertEqual(l.period.start, today)
         XCTAssertEqual(l.period.daysLeft, 30)
-    }
-
-    // MARK: Terminal → transaction
-
-    func testALoggedLineBecomesATransactionInTheRightCategoryAndWallet() throws {
-        let ctx = try seededContext()
-        let l = try ledger(ctx)
-        let parsed = SlangParser.parse("kopi 18rb kemarin", context: l.parseContext())
-        let tx = try XCTUnwrap(EntryWriter.insert(parsed, into: ctx, ledger: l))
-        XCTAssertEqual(tx.amount, 18_000)
-        XCTAssertEqual(tx.note, "Kopi")
-        XCTAssertEqual(tx.category?.name, "Coffee & Snacks")
-        XCTAssertEqual(tx.date, day(2026, 9, 23))
-        XCTAssertEqual(tx.account?.kind, .ewallet)
-        XCTAssertEqual(tx.type, .expense)
-    }
-
-    func testIncomeAndTransfersLandWhereTheyShould() throws {
-        let ctx = try seededContext()
-        let l = try ledger(ctx)
-
-        let salary = try XCTUnwrap(EntryWriter.insert(SlangParser.parse("gaji 16,5jt", context: l.parseContext()), into: ctx, ledger: l))
-        XCTAssertEqual(salary.type, .income)
-        XCTAssertEqual(salary.category?.name, "Salary")
-        XCTAssertEqual(salary.account?.kind, .bank)
-
-        let topup = try XCTUnwrap(EntryWriter.insert(SlangParser.parse("topup gopay 100rb", context: l.parseContext()), into: ctx, ledger: l))
-        XCTAssertEqual(topup.type, .transfer)
-        XCTAssertNil(topup.category)
-        XCTAssertEqual(topup.account?.kind, .bank)
-        XCTAssertEqual(topup.toAccount?.kind, .ewallet)
-    }
-
-    func testALineWithoutAnAmountSavesNothing() throws {
-        let ctx = try seededContext()
-        let l = try ledger(ctx)
-        XCTAssertNil(EntryWriter.insert(SlangParser.parse("makan siang", context: l.parseContext()), into: ctx, ledger: l))
-        XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Transaction>()), 0)
     }
 
     func testRatingAndUndoingADelete() throws {

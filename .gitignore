@@ -12,5 +12,7 @@ screenshots/tmp
 
 # iOS: Duit.xcodeproj is generated from ios/project.yml
 ios/*.xcodeproj
+# Info.plist and entitlements files that xcodegen writes from ios/project.yml
+ios/Config/
 ios/build
 *.ipa

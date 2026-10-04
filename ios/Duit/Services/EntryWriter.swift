@@ -4,30 +4,6 @@ import SwiftData
 /// Everything that writes transactions, in one place, so the screens stay
 /// simple and the rules (which wallet, which category, undo) don't drift.
 enum EntryWriter {
-    /// Saves what the Terminal understood from a typed line.
-    @discardableResult
-    static func insert(_ parsed: ParsedEntry, into context: ModelContext, ledger: Ledger) -> Transaction? {
-        guard parsed.ok else { return nil }
-        let category = parsed.type == .transfer ? nil : ledger.category(named: parsed.categoryName, kind: parsed.type)
-        let tx = Transaction(
-            type: parsed.type,
-            amount: parsed.amount,
-            category: category,
-            note: parsed.title,
-            date: DateHelpers.addDays(ledger.today, parsed.dayOffset),
-            account: ledger.account(parsed.type == .transfer ? parsed.fromAccountID : parsed.accountID),
-            toAccount: parsed.type == .transfer ? ledger.account(parsed.toAccountID) : nil
-        )
-        context.insert(tx)
-        try? context.save()
-        switch parsed.type {
-        case .expense: AccountDefaults.remember(parsed.accountID, key: Prefs.lastExpenseAccount)
-        case .income: AccountDefaults.remember(parsed.accountID, key: Prefs.lastIncomeAccount)
-        case .transfer: break
-        }
-        return tx
-    }
-
     /// A copy of a transaction's fields, so a delete can be undone.
     struct Snapshot {
         var type: TransactionType

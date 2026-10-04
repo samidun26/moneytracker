@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | The native app now covers **the whole retro "Duit OS" prototype** (§9b): five-tab desk, Today (battery, Terminal, To do, Recent), Activity (wallets, search, filters), Insights (Month, Prices, Habits, Worth it), Settings, Balance Check, Payday boot + Split. Everything **compiles and `DuitTests` pass in CI** (§9); the UI itself has not been seen on a device by the author (this container can't render SwiftUI) — the first real check is yours, on your iPhone (§9b "Updating your phone") |
+| **Status** | The native app now covers **the whole retro "Duit OS" prototype** (§9b): five-tab desk, Today (battery, To do, Recent), Activity (wallets, search, filters), Insights (Month, Prices, Habits, Worth it), Settings, Balance Check, Payday boot + Split. Everything **compiles and `DuitTests` pass in CI** (§9); the UI itself has not been seen on a device by the author (this container can't render SwiftUI) — the first real check is yours, on your iPhone (§9b "Updating your phone") |
 | **Supersedes** | [`docs/APP_STORE_PLAN.md`](./APP_STORE_PLAN.md)'s Capacitor-wrap approach (its Apple/App-Store logistics sections are still valid, cross-referenced below) |
 | **Governing rules** | [`/CLAUDE.md`](../CLAUDE.md) — philosophy, stack, and "rules of engagement" for this project. Read that first; this doc is the roadmap and status. |
 | **Supervisor** | You. I propose and explain before implementing; you decide on anything that changes product scope. |
@@ -179,7 +179,7 @@ Decision (yours): "do all, make it similar to the one I've created at first" —
 |---|---|---|
 | Five-tab taskbar, app bar with the battery | `RetroTaskbar`, `RetroAppBar` | `Components/RetroNav.swift`, `App/AppShell.swift` |
 | **Today** — Tanggal Tua battery | `TanggalTuaWindow` (needs "spending money" in Settings) | `Features/Today/TodayView.swift`, `Services/PayCycle.swift` |
-| Today — Duit Terminal (slang entry, questions) | `TerminalWindow`, `SlangParser`, `TerminalEngine` | `Services/` |
+| ~~Today — Duit Terminal~~ | **Removed** at your request (2026-10-04) along with the slang parser, question engine and their tests; last present at commit `97d8e12` if you ever want it back | — |
 | Today — To do (bills Paid/Skip, "worth it?", balance nudge), Recent | `TodoWindow`, `RecentWindow` | `Features/Today/`, `App/Ledger.swift` |
 | New / Edit transaction (3 types, LCD, suggestions, Undo) | `AddTransactionView` | `Features/Transactions/` |
 | **Activity** — wallets, search, All / Out / In | `ActivityView`, `ActivitySearch` | `Features/Transactions/`, `Services/` |
@@ -190,7 +190,7 @@ Decision (yours): "do all, make it similar to the one I've created at first" —
 | Payday boot screen + Payday Split | `PaydayBootView`, `PaydaySplitView`, `PaydayWriter` | `Features/Payday/`, `Services/` |
 | Stamps, toast with Undo, retro alert | `StampView`, `ToastView`, `.retroAlert` | `Components/RetroExtras.swift` |
 
-The prototype ran on sample data; the native app reads **your** transactions for everything. The calculation rules are ports of `src/domain/*.ts` and the prototype's own JS, with the prototype's sample numbers as test expectations (e.g. Rp 478.500 left → 4 %, Rp 68.357 a day, "+33 %" mie ayam, 95.376 an hour).
+The prototype ran on sample data; the native app reads **your** transactions for everything. The calculation rules are ports of `src/domain/*.ts` and the prototype's own JS, with the prototype's sample numbers as test expectations (e.g. Rp 478.500 left → 4 %, Rp 68.357 a day, "+33 %" mie ayam, 95.376 an hour). The Terminal's own sample numbers went away with it..
 
 ### Architecture, kept simple
 
@@ -222,13 +222,39 @@ The prototype ran on sample data; the native app reads **your** transactions for
 2. `cd ios && xcodegen generate` — this rewrites `Duit.xcodeproj`, so **Signing & Capabilities → Team** must be picked again.
 3. Plug in the iPhone, choose it as the destination, press Run. Your data stays (same bundle ID); delete the app first only if you want a clean start.
 
+## 9c. App icon, widgets, and the Terminal's removal (2026-10-04)
+
+Requested: put the pixel credit-card art in as the icon, remove the Duit Terminal, and add widgets ("current spends" and an "add to log" shortcut that opens the app on a new expense; the kinds were left to me).
+
+**App icon** — `Duit/Assets.xcassets/AppIcon.appiconset/AppIcon.png`, 1024×1024, opaque (iOS adds the rounded corners). The source picture was 565 px, so a plain upscale would have blurred the pixel edges. `ios/Tools/make_app_icon.py` finds the art's pixel grid (about 11.2 px per art pixel), keeps the sprite as square crisp pixels and enlarges the soft pastel background smoothly; re-run it with a higher-resolution original for a sharper result.
+
+**Widgets** (`ios/DuitWidget/`, a WidgetKit extension; Home Screen and Lock Screen):
+
+| Widget | Sizes | What it does |
+|---|---|---|
+| **Spending** | small, medium, Lock Screen circular / rectangular / inline | Tanggal Tua battery with "Rp … a day", spent today and this month. Without spending money set it shows this month's total on an LCD. Tap opens Today. The medium one also has a **NEW** button. |
+| **Quick add** | small, Lock Screen circular | One big **+**; tap opens Duit on **New expense**. |
+
+How it works, and why it's built this way:
+
+- **The widget never reads your transactions.** The app writes a small `WidgetSnapshot` (today's and this month's spending, battery, palette) into an **App Group** (`group.com.samidun26.duit`) whenever your data changes, and asks WidgetKit to redraw. The SwiftData store stays where it is, so there's no data migration and no risk to what's already on your phone.
+- **`duit://add`** is registered as a URL scheme (`duit://today` just opens the app). The app handles it in `AppShell` / `RootView`. If the lock is on, the link waits until you've unlocked, and any sheet that was open is closed first.
+- **Privacy:** with "Require Face ID to open" on, widgets show "Locked" instead of amounts (Lock Screen widgets are visible without unlocking the phone).
+- **After midnight** a widget shows "today" as zero even if you haven't opened the app, and a new month starts at zero; the battery only updates when the app runs.
+- Colors are duplicated in `DuitWidget/WidgetStyle.swift` (the app's `Theme` uses dynamic colors that don't survive into a widget process): keep them in sync. The widget picks day or night from the system, not from the app's Look setting.
+- Pure logic (`WidgetSnapshotBuilder`, staleness, `AppRoute`) is unit-tested; the widget views themselves are not (no device here).
+
+**Needs on your Mac:** `git pull`, `cd ios && xcodegen generate`, then in Xcode pick your **Team for both targets, Duit and DuitWidget** (Signing & Capabilities); the App Groups capability is added from the generated entitlements. Add the widgets from the Home Screen's edit mode (+), or the Lock Screen's Customize.
+**Risk:** I believe a free "Personal Team" can use App Groups, but I couldn't confirm it from here. If Xcode refuses ("…does not support the App Groups capability"), the widgets can't share data on a free account; tell me and I'll make the Quick add widget work without it.
+**Changing the bundle ID later** (Phase 5) means changing the group ID in `project.yml` and `Shared/WidgetSnapshot.swift` too.
+
 ## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
 
 `ios/project.yml` (XcodeGen spec) + `.github/workflows/ios.yml` give this repo a Swift compiler it otherwise lacks: on every push touching `ios/**`, a GitHub-hosted macOS runner generates the Xcode project, runs `DuitTests` on an iPhone simulator, and builds an **unsigned** `Duit-unsigned.ipa`, uploaded as a workflow artifact (14-day retention). Compiler errors from the first run are the fastest way to fix the "unverified" code listed in §8.
 
 **First run (2026-10-03, [run 37100925048](https://github.com/samidun26/moneytracker/actions/runs/37100925048)):** both jobs green — the app compiles for a Release device build and for the iOS 26.5 simulator, `DuitTests` passed, and the IPA artifact was produced. The test step prints only failures and the final tally (the full log is written to a file on the runner), so a red run names the assertion that broke.
 
-**Releases:** [`v0.1.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.1.0) is a public pre-release carrying the unsigned IPA. To cut another, run the workflow manually (Actions → iOS → Run workflow, or `workflow_dispatch` via API) with `release_tag` set to e.g. `v0.1.1` — it rebuilds, runs the tests, and only publishes if both pass. The tag is created at the commit you run it from; bump `MARKETING_VERSION` in `ios/project.yml` first so the app's version matches. To undo a release, delete the release and its tag on GitHub.
+**Releases:** [`v0.2.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.2.0) (the full prototype, §9b) is the latest public pre-release carrying the unsigned IPA; [`v0.1.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.1.0) is the first slice. To cut another, run the workflow manually (Actions → iOS → Run workflow, or `workflow_dispatch` via API) with `release_tag` set to e.g. `v0.1.1` — it rebuilds, runs the tests, and only publishes if both pass. The tag is created at the commit you run it from; bump `MARKETING_VERSION` in `ios/project.yml` first so the app's version matches. To undo a release, delete the release and its tag on GitHub.
 
 What this does **not** give you:
 

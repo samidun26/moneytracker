@@ -321,7 +321,7 @@ private struct PricesSection: View {
                 }
                 Text(result.rows.isEmpty
                     ? "Log the same thing a few times, like “mie ayam”, in different months. Duit reads the titles and tracks what it costs you."
-                    : "Prices of things you buy again and again, read from your titles over 12 months. Log “mie ayam 22rb” in the Terminal and watch it change.")
+                    : "Prices of things you buy again and again, read from your titles over 12 months. Log “mie ayam” a few times and watch it change.")
                     .font(.plex(12.5))
                     .foregroundStyle(Theme.ink2)
                     .padding(.top, 4)
