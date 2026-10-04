@@ -126,7 +126,7 @@ jobs:
 
           Requires iOS 17 or later.
 
-          **Status:** it compiles and the unit tests pass in CI ([run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})). The add transaction, quit, reopen flow has not been verified by hand yet. The bundle ID \`com.samidun26.duit\` is a placeholder.
+          **Status:** it compiles and the unit tests pass in CI ([run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})). Screens have not been checked on a real device yet, so expect rough edges in layout and motion. The bundle ID \`com.samidun26.duit\` is a placeholder.
 
           Built from commit ${GITHUB_SHA}.
           EOF
