@@ -16,12 +16,16 @@ SOURCE = ROOT / "design/prototype/Main.dc.html"
 OUTPUT = ROOT / "ios/Duit/Resources/PixelIconData.swift"
 
 USED = [
-    # app chrome
-    "logo", "coin", "plus",
+    # app chrome and tab bar
+    "logo", "coin", "home", "activity", "plus", "chart", "panel",
+    # window title icons
+    "battery", "term", "hourglass", "cash", "search", "star", "briefcase",
+    "check", "caution", "cloud", "arrowup",
+    # wallets
+    "bank", "phone", "card", "transfer",
     # category icons (see CategoryPixelIcon in Components/IconBadge.swift)
-    "food", "coffee", "cart", "car", "building", "bulb", "tv", "bag", "star",
-    "cross", "book", "family", "gift", "plane", "box", "briefcase", "chart",
-    "transfer", "cash",
+    "food", "coffee", "cart", "car", "building", "bulb", "tv", "bag",
+    "cross", "book", "family", "gift", "plane", "box",
 ]
 
 RECT = re.compile(r"M(\d+) (\d+)h(\d+)v(\d+)h-\d+z")

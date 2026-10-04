@@ -12,12 +12,12 @@ struct DuitApp: App {
     init() {
         // Fonts must be registered before the first view asks for them.
         DuitFonts.registerAll()
-        do {
-            container = try ModelContainer(for: Transaction.self, Category.self)
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
-        DefaultCategories.seedIfNeeded(container.mainContext)
+        container = Store.makeContainer()
+        let context = container.mainContext
+        DefaultCategories.seedIfNeeded(context)
+        DefaultAccounts.seedIfNeeded(context)
+        DefaultAccounts.backfillLegacyTransactions(context)
+        DefaultSplitBuckets.seedIfNeeded(context)
     }
 
     var body: some Scene {

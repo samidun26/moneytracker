@@ -15,17 +15,17 @@ import Foundation
 /// Budget/Insights-only helpers (shiftMonth, monthBounds, ordinal, timeAgo,
 /// …) belong to that phase and aren't needed yet.
 enum DateHelpers {
-    private static let calendar: Calendar = {
+    static let calendar: Calendar = {
         var c = Calendar(identifier: .gregorian)
         c.timeZone = .current
         return c
     }()
 
-    private static let months = [
+    static let months = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December",
     ]
-    private static let weekdays = [
+    static let weekdays = [
         "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
     ]
 
