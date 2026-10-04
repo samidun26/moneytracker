@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// Settings, after the prototype's last tab: Look, Payday, Security and
 /// Sync & data — plus the places where the real app needs to be set up,
@@ -28,6 +29,8 @@ struct SettingsView: View {
 
     @State private var panel: Panel?
     @State private var lockMethod = AppLock.methodName
+    @State private var showingImporter = false
+    @State private var pendingImport: PendingImport?
 
     private struct ThemeOption: Identifiable {
         let id: String
@@ -220,12 +223,12 @@ struct SettingsView: View {
 
     private var dataGroup: some View {
         RetroGroup(title: "Sync & data") {
-            note("Not connected. Everything stays on this iPhone.")
+            note("Not connected. Everything stays on this iPhone. Export CSV makes a backup you can bring back with Import CSV, which also reads a bank or e-wallet statement.")
             FlowLayout(spacing: 12) {
                 Button("Connect…") {
                     onAlert(RetroAlertContent(
                         title: "iCloud sync is coming",
-                        message: "Duit keeps everything on this iPhone for now. Export CSV makes a copy you can keep or open in a spreadsheet.",
+                        message: "Duit keeps everything on this iPhone for now. Export CSV makes a copy you can keep or open in a spreadsheet, and Import CSV brings it back.",
                         icon: PixelIconData.cloud
                     ))
                 }
@@ -240,11 +243,54 @@ struct SettingsView: View {
                 .buttonStyle(RetroButtonStyle(small: true))
                 .disabled(ledger.entries.isEmpty)
 
+                Button("Import CSV…") { showingImporter = true }
+                    .buttonStyle(RetroButtonStyle(small: true))
+
                 Button("Reset all data…", action: askReset)
                     .buttonStyle(RetroButtonStyle(kind: .danger, small: true))
             }
             .padding(.top, 10)
         }
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]
+        ) { handleImport($0) }
+        .sheet(item: $pendingImport) { pending in
+            ImportCSVView(ledger: ledger, pending: pending)
+        }
+    }
+
+    /// Reads the picked file and, if it makes sense, opens the preview. Nothing
+    /// is added until the user taps Add there.
+    private func handleImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            if (error as? CocoaError)?.code == .userCancelled { return }
+            importAlert("Couldn't open that file", error.localizedDescription)
+        case .success(let url):
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                guard size <= CSVImport.maxBytes else {
+                    importAlert("That file is too big", "Duit reads CSV files up to 5 MB. A bank statement for one account is much smaller; check that you picked the right file.")
+                    return
+                }
+                let data = try Data(contentsOf: url)
+                switch CSVImport.read(CSVParser.text(from: data)) {
+                case .success(let file):
+                    pendingImport = PendingImport(fileName: url.lastPathComponent, file: file)
+                case .failure(let failure):
+                    importAlert("Can't import that file", failure.message)
+                }
+            } catch {
+                importAlert("Couldn't open that file", error.localizedDescription)
+            }
+        }
+    }
+
+    private func importAlert(_ title: String, _ message: String) {
+        onAlert(RetroAlertContent(title: title, message: message, icon: PixelIconData.caution))
     }
 
     private func askReset() {

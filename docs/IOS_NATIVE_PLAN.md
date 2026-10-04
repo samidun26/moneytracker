@@ -206,7 +206,7 @@ The prototype ran on sample data; the native app reads **your** transactions for
 4. **"Mie ayam" unit** uses your latest "mie ayam" price; if you've never logged one it assumes Rp 20.000 and says so. **"Work hrs"** needs a salary (salary ÷ 173) and otherwise stays in rupiah.
 5. **Lock** engages as soon as the app goes to the background (no grace period) and closes any open sheet so nothing sits above the lock screen.
 6. **Reset all data** erases transactions, wallets, budgets, bills and buckets and restores the starting wallets, categories and buckets. Look settings and the lock stay.
-7. **Deliberately not built:** category add/edit/delete (the 22 defaults are fixed), JSON backup/restore, account detail pages, first-run onboarding, iCloud sync (the "Connect…" button says so), widgets and notifications. All are in the web app or `§3 later`; each is its own decision.
+7. **Deliberately not built:** category add/edit/delete (the 22 defaults are fixed), JSON backup/restore (CSV export/import came later, §9d), account detail pages, first-run onboarding, iCloud sync (the "Connect…" button says so), widgets and notifications. All are in the web app or `§3 later`; each is its own decision.
 
 ### Known gaps and caveats
 
@@ -251,6 +251,32 @@ How it works, and why it's built this way:
 **Needs on your Mac:** `git pull`, `cd ios && xcodegen generate`, then in Xcode pick your **Team for both targets, Duit and DuitWidget** (Signing & Capabilities); the App Groups capability is added from the generated entitlements. Add the widgets from the Home Screen's edit mode (+), or the Lock Screen's Customize.
 **Risk:** I believe a free "Personal Team" can use App Groups, but I couldn't confirm it from here. If Xcode refuses ("…does not support the App Groups capability"), the widgets can't share data on a free account; tell me and I'll make the Quick add widget work without it.
 **Changing the bundle ID later** (Phase 5) means changing the group ID in `project.yml` and `Shared/WidgetSnapshot.swift` too.
+
+## 9d. CSV import and export (2026-10-04)
+
+Requested: "implement CSV import / bank statement, you decide the format, and export so that after an update we can import the app's own export."
+
+**Settings → Sync & data** now has **Export CSV…** and **Import CSV…**. Import opens a preview first (what was understood, how many rows are new / already in Duit / skipped, the first six rows) and only writes when you tap **Add N**. A toast offers **Undo**, which removes exactly the rows that import added.
+
+| File | Where | Notes |
+|---|---|---|
+| Duit's own export | `Services/CSVExport.swift` | `Date, Type, Amount, Signed amount, Category, Account, To account, Note` (the web app's columns) **plus `ID` and `Worth it`**, so the file is read back exactly. Exports from before this change still import (no ID: matched by content). |
+| Reader | `Services/CSVParser.swift`, `CSVImport.swift`, `ImportParsing.swift` | Quotes, line breaks in cells, CRLF, BOM, `, ; tab \|`, UTF-8 / UTF-16 / Windows-1252. |
+| Planner | `Services/ImportPlan.swift` | Pure: wallets, duplicates, categories. |
+| Writer | `Services/ImportWriter.swift` | The only code that writes imported rows, and removes them for Undo. |
+| Preview | `Features/Settings/ImportCSVView.swift` | |
+
+**Bank statements.** The header row is found on its own (within the first 40 rows, so account-name lines above the table are fine) by looking for a date column and money columns, in English or Indonesian (`Tanggal`, `Keterangan`, `Debet`, `Kredit`, `Jumlah`, `Saldo`…). Money is read as either **Debit + Credit columns**, **one Amount column** whose sign, brackets, `DB`/`CR` mark or a **Type column** gives the direction. Numbers read as `1.234.567,89` or `1,234,567.89`; dates as `31/12/2025`, `2025-12-31`, `1 Okt 2025`, with or without a time (day-first unless the file proves month-first). If a file's amounts carry *no* direction at all, Duit assumes positive = money in and shows a **Money in / Money out** switch in the preview.
+
+**Decisions I made, please confirm or override:**
+
+1. **Duplicates.** A Duit export is matched by ID, then by the whole row (day, type, amount, wallet, title). A bank statement is matched by **day + amount + wallet only**, because the bank's wording never equals what you typed ("QRIS KOPI KENANGAN" vs "Kopi"); this stops a statement from doubling what you already logged by hand. Rows are counted, not just checked: two real Rp 20.000 lunches stay two. The cost: a genuinely new bank row with the same day, amount and wallet as a manual entry is skipped as "already in Duit". A bank date that differs by a day from your manual entry is not matched.
+2. **Categories for statements** come from titles you've used before (the same title, or a statement line that contains one of your titles of 4+ letters); everything else is **Other**. There is no built-in merchant keyword list.
+3. **Wallets.** Statement rows go to the wallet you pick in the preview. A Duit export carries wallet names; a name that doesn't exist yet is **created** (starting balance Rp 0, a type guessed from the name: GoPay → e-wallet, Visa → credit card, otherwise bank).
+4. **The CSV holds transactions only.** Wallets' starting balances, budgets, bills, Payday split buckets and settings are not in it, so after a reinstall balances can differ from before until you re-enter starting balances (Settings → Wallets, or Balance Check). A full backup (JSON, as the web app has) is the real fix and is its own decision; it is still not built.
+5. **Limits.** 5 MB per file; `.csv`/`.txt` only (not `.xls`/`.xlsx`/PDF); a date without a year (`01/10`) is skipped and reported; transfers between your own wallets can't be recognised in a bank statement (they import as spending or income).
+
+**Not verified:** this container has no Swift toolchain, so CI is the compiler and the tests' only runner. The statement layouts in `CSVImportTests` are typical shapes written for the tests, **not real bank files**. The first real check is importing your own bank's CSV on your iPhone; tell me which bank and what goes wrong and I'll add that layout to the tests.
 
 ## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
 
