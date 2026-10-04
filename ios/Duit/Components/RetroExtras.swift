@@ -291,3 +291,64 @@ struct BudgetMeter: View {
         }
     }
 }
+
+// MARK: - LCD stat box
+
+/// A small green LCD with a caption and a big number (the prototype's
+/// `.lcd.statbox`): Spent / Income, Worth it / Nyesel.
+struct LCDStatBox: View {
+    var caption: String
+    var value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(caption)
+                .font(.plex(11, .bold))
+                .tracking(1.1)
+                .textCase(.uppercase)
+                .lineLimit(1)
+            Text(value)
+                .font(.lcd(30))
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+        }
+        .foregroundStyle(Theme.lcdInk)
+        .padding(.horizontal, 10)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.lcd)
+        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(caption)
+        .accessibilityValue(value)
+    }
+}
+
+// MARK: - Status chip
+
+/// "ON TRACK" / "CAREFUL" / "OVER" beside a budget.
+struct BudgetStatusChip: View {
+    var status: BudgetStatus
+
+    var body: some View {
+        Text(status.label)
+            .font(.plex(10.5, .bold))
+            .tracking(0.6)
+            .textCase(.uppercase)
+            .foregroundStyle(Theme.titleInk)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(fill)
+            .overlay(Rectangle().strokeBorder(Theme.titleInk, lineWidth: 1))
+            .accessibilityHidden(true)
+    }
+
+    private var fill: Color {
+        switch status {
+        case .ok: Theme.good
+        case .warn: Theme.caution
+        case .over: Theme.bad
+        }
+    }
+}

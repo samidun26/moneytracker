@@ -110,7 +110,7 @@ struct RootView: View {
                 onCheckBalance: { balanceTarget = BalanceCheckTarget(id: $0) }
             )
         case .insights:
-            InsightsView(ledger: ledger)
+            InsightsView(ledger: ledger, onGoSettings: { tab = .settings })
         case .settings:
             SettingsView(ledger: ledger)
         }

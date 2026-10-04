@@ -70,6 +70,29 @@ final class InsightsTests: XCTestCase {
         XCTAssertEqual(Insights.niceMax(101), 120, accuracy: 0.0001)
     }
 
+    func testChartMaxIsAtLeastTheTallestBar() {
+        let months = MonthKey(year: 2026, month: 9)
+        let points = [
+            Insights.TrendPoint(month: months.shifted(by: -1), income: 15_000_000, expense: 9_000_000),
+            Insights.TrendPoint(month: months, income: 17_500_000, expense: 12_000_000),
+        ]
+        XCTAssertEqual(Insights.chartMax(points), 20_000_000, accuracy: 0.0001)
+        XCTAssertEqual(Insights.chartMax([]), 1_000_000, accuracy: 0.0001)
+        let empty = [Insights.TrendPoint(month: months, income: 0, expense: 0)]
+        XCTAssertEqual(Insights.chartMax(empty), 1_000_000, accuracy: 0.0001)
+    }
+
+    func testStatusLineForTheSelectedMonth() {
+        let sep = MonthKey(year: 2026, month: 9)
+        let saved = Insights.TrendPoint(month: sep, income: 17_500_000, expense: 12_000_000)
+        XCTAssertEqual(
+            Insights.statusLine(saved),
+            "September · in Rp 17,5 jt · out Rp 12 jt · net +5,5 jt"
+        )
+        let overspent = Insights.TrendPoint(month: sep, income: 1_000_000, expense: 1_500_000)
+        XCTAssertTrue(Insights.statusLine(overspent).hasSuffix("net \u{2212}500 rb"))
+    }
+
     // MARK: Units
 
     func testQuantityFormatting() {

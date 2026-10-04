@@ -107,6 +107,21 @@ enum Insights {
         return 10 * e
     }
 
+    /// The chart's top edge: a tidy number above the tallest bar, or Rp 1 jt
+    /// when there's nothing to draw yet (so the axis never reads "Rp 1").
+    static func chartMax(_ points: [TrendPoint]) -> Double {
+        let peak = points.map { max($0.income, $0.expense) }.max() ?? 0
+        return peak > 0 ? niceMax(Double(peak)) : 1_000_000
+    }
+
+    /// The line under the chart for the selected month:
+    /// "September · in Rp 17,5 jt · out Rp 12 jt · net +5,5 jt".
+    static func statusLine(_ point: TrendPoint) -> String {
+        let net = point.income - point.expense
+        let netText = (net > 0 ? "+" : "") + CurrencyFormatter.formatCompact(net)
+        return "\(point.month.fullName) · in \(CurrencyFormatter.formatRpCompact(point.income)) · out \(CurrencyFormatter.formatRpCompact(point.expense)) · net \(netText)"
+    }
+
     // MARK: Units — "feel what it means"
 
     enum MoneyUnit: String, CaseIterable, Identifiable {

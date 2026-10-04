@@ -69,6 +69,11 @@ struct Ledger {
         return accounts.first { $0.id == id }
     }
 
+    func category(id: UUID?) -> Category? {
+        guard let id else { return nil }
+        return categories.first { $0.id == id }
+    }
+
     var activeAccounts: [Account] { accounts.filter { !$0.archived } }
     var activeAccountRefs: [AccountRef] { accountRefs.filter { !$0.archived } }
 

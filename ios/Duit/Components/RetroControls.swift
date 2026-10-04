@@ -173,3 +173,90 @@ struct RetroTabs<Value: Hashable>: View {
         }
     }
 }
+
+// MARK: - Segmented control
+
+/// The big three-way switch under the app bar (the prototype's `.seg`): one
+/// bordered strip, hard shadow, the open section filled with the accent.
+struct RetroSegmented<Value: Hashable>: View {
+    var items: [Value]
+    var label: (Value) -> String
+    @Binding var selection: Value
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(items.enumerated()), id: \.offset) { index, item in
+                let on = item == selection
+                Button { selection = item } label: {
+                    Text(label(item))
+                        .font(.pixel(14))
+                        .foregroundStyle(on ? Theme.accentInk : Theme.ink2)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .background(on ? Theme.accent : Color.clear)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
+                if index < items.count - 1 {
+                    Theme.line.frame(width: 1)
+                }
+            }
+        }
+        .background(Theme.face2)
+        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+        .background { Theme.shadow.offset(x: 3, y: 3) }
+    }
+}
+
+// MARK: - Step slider
+
+/// A whole-number slider with the prototype's chunky thumb (`.range`): a
+/// sunken track and a raised 22×28 handle. VoiceOver can adjust it up/down.
+struct RetroStepSlider: View {
+    @Binding var value: Int
+    var range: ClosedRange<Int>
+    var accessibilityLabel: String
+
+    private let thumbWidth: CGFloat = 22
+
+    var body: some View {
+        GeometryReader { proxy in
+            let travel = max(1, proxy.size.width - thumbWidth)
+            let steps = max(1, range.upperBound - range.lowerBound)
+            let fraction = CGFloat(value - range.lowerBound) / CGFloat(steps)
+            ZStack(alignment: .leading) {
+                Rectangle()
+                    .fill(Theme.grid)
+                    .frame(height: 10)
+                    .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+                    .padding(.horizontal, thumbWidth / 2 - 1)
+                Rectangle()
+                    .fill(Theme.face)
+                    .frame(width: thumbWidth, height: 28)
+                    .overlay { BevelOverlay(topLeft: Theme.hi, bottomRight: Theme.lo) }
+                    .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+                    .offset(x: fraction * travel)
+            }
+            .frame(maxHeight: .infinity)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0).onChanged { drag in
+                    let f = min(1, max(0, (drag.location.x - thumbWidth / 2) / travel))
+                    let next = range.lowerBound + Int((f * CGFloat(steps)).rounded())
+                    if next != value { value = next }
+                }
+            )
+        }
+        .frame(height: 44)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityValue("\(value)")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: value = min(range.upperBound, value + 1)
+            case .decrement: value = max(range.lowerBound, value - 1)
+            @unknown default: break
+            }
+        }
+    }
+}
