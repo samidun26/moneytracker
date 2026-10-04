@@ -228,7 +228,7 @@ The prototype ran on sample data; the native app reads **your** transactions for
 
 **First run (2026-10-03, [run 37100925048](https://github.com/samidun26/moneytracker/actions/runs/37100925048)):** both jobs green — the app compiles for a Release device build and for the iOS 26.5 simulator, `DuitTests` passed, and the IPA artifact was produced. The test step prints only failures and the final tally (the full log is written to a file on the runner), so a red run names the assertion that broke.
 
-**Releases:** [`v0.1.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.1.0) is a public pre-release carrying the unsigned IPA. To cut another, run the workflow manually (Actions → iOS → Run workflow, or `workflow_dispatch` via API) with `release_tag` set to e.g. `v0.1.1` — it rebuilds, runs the tests, and only publishes if both pass. The tag is created at the commit you run it from; bump `MARKETING_VERSION` in `ios/project.yml` first so the app's version matches. To undo a release, delete the release and its tag on GitHub.
+**Releases:** [`v0.2.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.2.0) (the full prototype, §9b) is the latest public pre-release carrying the unsigned IPA; [`v0.1.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.1.0) is the first slice. To cut another, run the workflow manually (Actions → iOS → Run workflow, or `workflow_dispatch` via API) with `release_tag` set to e.g. `v0.1.1` — it rebuilds, runs the tests, and only publishes if both pass. The tag is created at the commit you run it from; bump `MARKETING_VERSION` in `ios/project.yml` first so the app's version matches. To undo a release, delete the release and its tag on GitHub.
 
 What this does **not** give you:
 
