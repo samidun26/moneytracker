@@ -6,12 +6,14 @@ import SwiftData
 /// preferences, not data, so they stay.
 enum DataReset {
     static func eraseEverything(in context: ModelContext) {
-        try? context.delete(model: Transaction.self)
-        try? context.delete(model: RecurringRule.self)
-        try? context.delete(model: Budget.self)
-        try? context.delete(model: SplitBucket.self)
-        try? context.delete(model: Account.self)
-        try? context.delete(model: Category.self)
+        // One by one rather than a batch delete, so every delete rule runs
+        // (wallets and categories let go of the transactions that used them).
+        deleteAll(Transaction.self, in: context)
+        deleteAll(RecurringRule.self, in: context)
+        deleteAll(Budget.self, in: context)
+        deleteAll(SplitBucket.self, in: context)
+        deleteAll(Account.self, in: context)
+        deleteAll(Category.self, in: context)
         try? context.save()
 
         DefaultCategories.seedIfNeeded(context)
@@ -22,6 +24,12 @@ enum DataReset {
         let defaults = UserDefaults.standard
         for key in [Prefs.salary, Prefs.lastSplitPeriod, Prefs.lastExpenseAccount, Prefs.lastIncomeAccount, Store.resetFlagKey] {
             defaults.removeObject(forKey: key)
+        }
+    }
+
+    private static func deleteAll<T: PersistentModel>(_ type: T.Type, in context: ModelContext) {
+        for item in (try? context.fetch(FetchDescriptor<T>())) ?? [] {
+            context.delete(item)
         }
     }
 }

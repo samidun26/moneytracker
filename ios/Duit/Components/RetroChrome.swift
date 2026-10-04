@@ -7,23 +7,28 @@ import SwiftUI
 
 // MARK: - Desk
 
-/// The lavender (day) / navy (night) backdrop with the faint dot texture.
+/// The lavender (day) / navy (night) backdrop with the faint dot texture
+/// (which Settings → Desktop dots can turn off).
 struct DeskBackground: View {
+    @AppStorage(Prefs.texture) private var texture = true
+
     var body: some View {
         ZStack {
             Theme.desk
-            Canvas { context, size in
-                var dots = Path()
-                var y: CGFloat = 0
-                while y < size.height {
-                    var x: CGFloat = 0
-                    while x < size.width {
-                        dots.addRect(CGRect(x: x, y: y, width: 1, height: 1))
-                        x += 6
+            if texture {
+                Canvas { context, size in
+                    var dots = Path()
+                    var y: CGFloat = 0
+                    while y < size.height {
+                        var x: CGFloat = 0
+                        while x < size.width {
+                            dots.addRect(CGRect(x: x, y: y, width: 1, height: 1))
+                            x += 6
+                        }
+                        y += 6
                     }
-                    y += 6
+                    context.fill(dots, with: .color(Theme.dot), style: FillStyle(antialiased: false))
                 }
-                context.fill(dots, with: .color(Theme.dot), style: FillStyle(antialiased: false))
             }
         }
         .ignoresSafeArea()

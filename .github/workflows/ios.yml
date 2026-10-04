@@ -49,10 +49,17 @@ jobs:
           sys.exit('no iPhone simulator found')
           ")
           echo "Using simulator $UDID"
-          xcodebuild test -quiet \
+          # Keep the full log in a file and print only what explains a
+          # failure (the assertion messages), so the job log stays readable.
+          set +e
+          xcodebuild test \
             -project Duit.xcodeproj -scheme Duit \
             -destination "id=$UDID" \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO 2>&1 \
+            | tee /tmp/xcodebuild-test.log \
+            | grep -E "error:|Test Case .* failed|Failing tests|Executed [0-9]+ tests|TEST (SUCCEEDED|FAILED)"
+          status=${PIPESTATUS[0]}
+          exit $status
 
   ipa:
     runs-on: macos-latest

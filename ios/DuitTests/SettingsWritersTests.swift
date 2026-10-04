@@ -38,7 +38,7 @@ final class SettingsWritersTests: XCTestCase {
         let l = try ledger(ctx)
         let buckets = try ctx.fetch(FetchDescriptor<SplitBucket>(sortBy: [SortDescriptor(\.order)]))
         let plan = buckets.map { (id: $0.id, amount: 2_000_000) }
-        let spending = PaydaySplit.spendingMoney(salary: 16_500_000, buckets: plan.map(\.amount))
+        let spending = PaydaySplit.spendingMoney(salary: 16_500_000, buckets: plan.map { $0.amount })
         XCTAssertEqual(spending, 8_500_000)
 
         let outcome = PaydayWriter.confirm(salary: 16_500_000, buckets: plan, spendingMoney: spending, ledger: l, in: ctx)
