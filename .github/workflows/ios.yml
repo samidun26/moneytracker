@@ -1,0 +1,138 @@
+name: iOS
+
+# Compiles the native app and runs its unit tests on a macOS runner (this repo's
+# dev container has no Swift toolchain), and produces an UNSIGNED .ipa as a
+# workflow artifact. Unsigned = not installable as-is: it must be re-signed
+# (Sideloadly / AltStore) or replaced by a signed TestFlight build later.
+# See docs/IOS_NATIVE_PLAN.md §9.
+
+on:
+  push:
+    branches: [main, 'claude/**']
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['ios/**', '.github/workflows/ios.yml']
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Publish a GitHub pre-release with the IPA under this tag (e.g. v0.1.0). Leave empty to only build.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: ios
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: brew install xcodegen && xcodegen generate
+      - name: Run unit tests on an iPhone simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          runtimes = json.load(sys.stdin)['devices']
+          for key in sorted(k for k in runtimes if 'iOS' in k)[::-1]:
+              for d in runtimes[key]:
+                  if d['name'].startswith('iPhone'):
+                      print(d['udid']); sys.exit()
+          sys.exit('no iPhone simulator found')
+          ")
+          echo "Using simulator $UDID"
+          # Keep the full log in a file and print only what explains a
+          # failure (the assertion messages), so the job log stays readable.
+          set +e
+          xcodebuild test \
+            -project Duit.xcodeproj -scheme Duit \
+            -destination "id=$UDID" \
+            CODE_SIGNING_ALLOWED=NO 2>&1 \
+            | tee /tmp/xcodebuild-test.log \
+            | grep -E "error:|Test Case .* failed|Failing tests|Executed [0-9]+ tests|TEST (SUCCEEDED|FAILED)"
+          status=${PIPESTATUS[0]}
+          exit $status
+
+  ipa:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: brew install xcodegen && xcodegen generate
+      - name: Build unsigned Release for device
+        run: |
+          xcodebuild build -quiet \
+            -project Duit.xcodeproj -scheme Duit \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Package .ipa
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Duit.app Payload/
+          zip -qry Duit-unsigned.ipa Payload
+          ls -lh Duit-unsigned.ipa
+      - name: Sanity-check the packaged app
+        run: |
+          unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/(Duit|Info.plist)$"
+          plutil -p Payload/Duit.app/Info.plist | grep -E "CFBundleIdentifier|CFBundleShortVersionString|MinimumOSVersion|DTPlatformName|UIDeviceFamily"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Duit-unsigned-ipa
+          path: ios/Duit-unsigned.ipa
+          retention-days: 14
+
+  # Manual only: Actions -> iOS -> Run workflow, with a tag. Gated on the tests
+  # and the IPA build both passing. Tag is created server-side at this commit.
+  release:
+    if: github.event_name == 'workflow_dispatch' && inputs.release_tag != ''
+    needs: [test, ipa]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: Duit-unsigned-ipa
+      - name: Create pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]]; then
+            echo "Tag '$TAG' must look like v1.2.3 or v1.2.3-beta.1" >&2
+            exit 1
+          fi
+          ASSET="Duit-${TAG}-unsigned.ipa"
+          mv Duit-unsigned.ipa "$ASSET"
+          cat > notes.md <<EOF
+          **Unsigned test build of the native iOS app. It cannot be installed by tapping it.**
+
+          iOS only runs Apple-signed apps, so this \`.ipa\` has to be re-signed first:
+          - **Sideloadly** or **AltStore** with a free Apple ID — the app expires after 7 days and needs a computer to refresh.
+          - Or wait for a signed **TestFlight** build (needs the Apple Developer Program).
+
+          Requires iOS 17 or later.
+
+          **Status:** it compiles and the unit tests pass in CI ([run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})). The add transaction, quit, reopen flow has not been verified by hand yet. The bundle ID \`com.samidun26.duit\` is a placeholder.
+
+          Built from commit ${GITHUB_SHA}.
+          EOF
+          gh release create "$TAG" "$ASSET" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "Duit ${TAG} (unsigned test build)" \
+            --notes-file notes.md \
+            --prerelease

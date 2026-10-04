@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | First vertical slice source-complete (Models, Services, Components, Add Transaction, Transaction History) — waiting on Xcode project creation (your Mac) to actually build and verify any of it |
+| **Status** | The native app now covers **the whole retro "Duit OS" prototype** (§9b): five-tab desk, Today (battery, Terminal, To do, Recent), Activity (wallets, search, filters), Insights (Month, Prices, Habits, Worth it), Settings, Balance Check, Payday boot + Split. Everything **compiles and `DuitTests` pass in CI** (§9); the UI itself has not been seen on a device by the author (this container can't render SwiftUI) — the first real check is yours, on your iPhone (§9b "Updating your phone") |
 | **Supersedes** | [`docs/APP_STORE_PLAN.md`](./APP_STORE_PLAN.md)'s Capacitor-wrap approach (its Apple/App-Store logistics sections are still valid, cross-referenced below) |
 | **Governing rules** | [`/CLAUDE.md`](../CLAUDE.md) — philosophy, stack, and "rules of engagement" for this project. Read that first; this doc is the roadmap and status. |
 | **Supervisor** | You. I propose and explain before implementing; you decide on anything that changes product scope. |
@@ -154,3 +154,88 @@ Per the governing guide's own instruction — don't build the whole app, build t
 6. Verify on your Mac: build, run in Simulator, add an income and an expense, quit the app, reopen — both should still be there. Report back whatever breaks first; SwiftUI/SwiftData errors are much faster to fix from an actual compiler error than from more guessing here.
 
 **Definition of done for this slice**: a user can manually create an income or expense transaction, close the app, reopen it, and still see the transaction. Nothing past that (Dashboard, Statistics, etc.) starts until this is solid.
+
+## 9a. Retro "Duit OS" theme (applied to the existing two screens)
+
+Decision (yours, 2026-10-04): the native app should look like the retro prototype (`design/prototype/`, [duit-os-prototype.vercel.app](https://duit-os-prototype.vercel.app)), not the web app's iOS-style look. Implemented as a theme layer plus a restyle of Add Transaction and Activity — **no logic or database changes**.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Design tokens | `Resources/DuitTheme.swift` | Day/night colors ported value-for-value from the prototype CSS; follows the system light/dark setting; candy palette only. All text/background pairs pass WCAG AA (≥ 4.5:1) in both modes. |
+| Fonts | `Resources/Fonts/` + `Resources/DuitFonts.swift` | Silkscreen (titles/buttons), VT323 (LCD amount, keys), IBM Plex Mono (body) — all SIL OFL 1.1, license texts bundled beside them. Registered at launch via CoreText; `ThemeTests` fails if a name doesn't resolve (otherwise iOS silently falls back to the system font). Sizes scale with Dynamic Type. |
+| Pixel icons | `Resources/PixelIconData.swift` (generated) | From the prototype's `ICONS`; regenerate with `python3 ios/Tools/gen_pixel_icons.py`. Categories keep storing an emoji; `CategoryPixelIcon` maps it to a pixel icon at draw time and falls back to the emoji for unmapped ones. |
+| Components | `Components/RetroChrome.swift`, `RetroControls.swift`, `PixelIcon.swift`, `IconBadge.swift`, `Keypad.swift` | Desk, app bar + palette stripe, windows with title bars and hard shadows, bevel buttons, folder tabs, sunken field, tiles, keypad. |
+
+**Done later:** the Today screen, the other four taskbar tabs and palette / day-night switching all landed afterwards — see §9b.
+**Known gaps:** the date picker is still the system control; tile colors for `teal`/`cyan` have no prototype equivalent and were chosen by eye; `Entertainment` uses the prototype's star icon (its "Fun & Hobbies"); the look hasn't been seen on a device by the author — this container can't render SwiftUI.
+
+## 9b. The full prototype, natively (decided 2026-10-04)
+
+Decision (yours): "do all, make it similar to the one I've created at first" — the native app should have every feature of `design/prototype/Main.dc.html`, not just its look. This **overrides** §3's "explicitly later" list for budgets, recurring bills, export and the lock; everything below was built in vertical slices, each one compiled and tested in CI before the next.
+
+### Feature map
+
+| Prototype | Native | Where |
+|---|---|---|
+| Five-tab taskbar, app bar with the battery | `RetroTaskbar`, `RetroAppBar` | `Components/RetroNav.swift`, `App/AppShell.swift` |
+| **Today** — Tanggal Tua battery | `TanggalTuaWindow` (needs "spending money" in Settings) | `Features/Today/TodayView.swift`, `Services/PayCycle.swift` |
+| Today — Duit Terminal (slang entry, questions) | `TerminalWindow`, `SlangParser`, `TerminalEngine` | `Services/` |
+| Today — To do (bills Paid/Skip, "worth it?", balance nudge), Recent | `TodoWindow`, `RecentWindow` | `Features/Today/`, `App/Ledger.swift` |
+| New / Edit transaction (3 types, LCD, suggestions, Undo) | `AddTransactionView` | `Features/Transactions/` |
+| **Activity** — wallets, search, All / Out / In | `ActivityView`, `ActivitySearch` | `Features/Transactions/`, `Services/` |
+| Balance Check | `BalanceCheckView`, `BalanceCheck` | `Features/Wallets/`, `Services/` |
+| **Insights** — Month (units, budgets, where it went, 6 months) | `InsightsView`, `TrendChart`, `Insights`, `BudgetLines` | `Features/Insights/`, `Services/` |
+| Insights — Prices, Habit Time Machine, Worth-it report | `PriceTracker`, `HabitFinder`, `WorthIt` | `Services/PricesAndHabits.swift` |
+| **Settings** — look, payday, security, sync & data | `SettingsView` | `Features/Settings/` |
+| Payday boot screen + Payday Split | `PaydayBootView`, `PaydaySplitView`, `PaydayWriter` | `Features/Payday/`, `Services/` |
+| Stamps, toast with Undo, retro alert | `StampView`, `ToastView`, `.retroAlert` | `Components/RetroExtras.swift` |
+
+The prototype ran on sample data; the native app reads **your** transactions for everything. The calculation rules are ports of `src/domain/*.ts` and the prototype's own JS, with the prototype's sample numbers as test expectations (e.g. Rp 478.500 left → 4 %, Rp 68.357 a day, "+33 %" mie ayam, 95.376 an hour).
+
+### Architecture, kept simple
+
+- Screens read one value-type `Ledger` snapshot built in `RootView` from the SwiftData `@Query` results. All rules live in pure `Services/` functions over plain `Entry` values, so they're unit-tested without a database; writes go through `EntryWriter`, `RecurringPoster` and `PaydayWriter`.
+- New fields on `Transaction` are optional (SwiftData migrates them automatically), and `Store.makeContainer` never deletes an unreadable store: it moves it aside as `default.store.backup-<time>` and tells you once.
+- No backend, no custom account. The optional lock is Face ID with the iPhone's own passcode as the backup.
+
+### Product decisions I made — please confirm or override
+
+1. **Setup lives in Settings.** The prototype had sample wallets, budgets and bills. A real app needs a way to create them, so Settings has: *Spending money* (the overall budget that powers the battery), *Monthly salary*, **Wallets** (add / rename / type / starting balance / archive; delete only if it has no history), **Category budgets**, **Bills & subscriptions** and **Payday split buckets**. A fresh install starts with three wallets (Cash, Bank, E-wallet) and four buckets (Rent, Savings, Family, Bills & subscriptions) with Rp 0.
+2. **Payday day** can be any day 1–31 (prototype: 1st, 25th, 28th presets + "Another day…").
+3. **Payday Split** logs your salary as income once per pay period (skipped if you already logged "Salary" since payday), remembers each bucket's amount for next month, and makes the leftover your spending money. "Later" changes nothing.
+4. **"Mie ayam" unit** uses your latest "mie ayam" price; if you've never logged one it assumes Rp 20.000 and says so. **"Work hrs"** needs a salary (salary ÷ 173) and otherwise stays in rupiah.
+5. **Lock** engages as soon as the app goes to the background (no grace period) and closes any open sheet so nothing sits above the lock screen.
+6. **Reset all data** erases transactions, wallets, budgets, bills and buckets and restores the starting wallets, categories and buckets. Look settings and the lock stay.
+7. **Deliberately not built:** category add/edit/delete (the 22 defaults are fixed), JSON backup/restore, account detail pages, first-run onboarding, iCloud sync (the "Connect…" button says so), widgets and notifications. All are in the web app or `§3 later`; each is its own decision.
+
+### Known gaps and caveats
+
+- **Not seen on a device.** CI proves it compiles and the logic is right; layout, fonts, motion, Face ID and sharing are unverified until you run it.
+- The system **date picker** (bill start date) and **share sheet** (Export CSV) are native, not retro-styled.
+- Categories whose emoji has no pixel icon show the emoji; `teal` / `cyan` tile colors are my own picks.
+- A fresh `xcodegen generate` resets Xcode's signing — re-pick your Team (§ "Updating your phone").
+- Data written by the first prototype build (before wallets existed) is migrated by giving it to Cash; that migration was written but never run against a real old store.
+
+### Updating your phone (Mac)
+
+1. In your clone: `git pull` on branch `claude/determined-wright-b7gk90` (or merge PR #4 first).
+2. `cd ios && xcodegen generate` — this rewrites `Duit.xcodeproj`, so **Signing & Capabilities → Team** must be picked again.
+3. Plug in the iPhone, choose it as the destination, press Run. Your data stays (same bundle ID); delete the app first only if you want a clean start.
+
+## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
+
+`ios/project.yml` (XcodeGen spec) + `.github/workflows/ios.yml` give this repo a Swift compiler it otherwise lacks: on every push touching `ios/**`, a GitHub-hosted macOS runner generates the Xcode project, runs `DuitTests` on an iPhone simulator, and builds an **unsigned** `Duit-unsigned.ipa`, uploaded as a workflow artifact (14-day retention). Compiler errors from the first run are the fastest way to fix the "unverified" code listed in §8.
+
+**First run (2026-10-03, [run 37100925048](https://github.com/samidun26/moneytracker/actions/runs/37100925048)):** both jobs green — the app compiles for a Release device build and for the iOS 26.5 simulator, `DuitTests` passed, and the IPA artifact was produced. The test step prints only failures and the final tally (the full log is written to a file on the runner), so a red run names the assertion that broke.
+
+**Releases:** [`v0.1.0`](https://github.com/samidun26/moneytracker/releases/tag/v0.1.0) is a public pre-release carrying the unsigned IPA. To cut another, run the workflow manually (Actions → iOS → Run workflow, or `workflow_dispatch` via API) with `release_tag` set to e.g. `v0.1.1` — it rebuilds, runs the tests, and only publishes if both pass. The tag is created at the commit you run it from; bump `MARKETING_VERSION` in `ios/project.yml` first so the app's version matches. To undo a release, delete the release and its tag on GitHub.
+
+What this does **not** give you:
+
+- **Proof the app behaves correctly.** A green build and passing unit tests don't cover the UI or SwiftData persistence. §8.6 (add an income and an expense, quit, reopen) still has to be done by hand.
+
+- **An installable app.** iOS only runs signed code. The unsigned IPA must be re-signed with a free Apple ID via Sideloadly/AltStore (device-registered, expires after 7 days, max 3 sideloaded apps), or replaced by a signed TestFlight build in Phase 5 (needs the $99/yr Developer Program).
+- **Private downloads.** The repo is public, so artifacts are downloadable by any signed-in GitHub user.
+- **A final bundle ID.** `com.samidun26.duit` is a placeholder — set the real one before Phase 5.
+
+The generated `Duit.xcodeproj` is gitignored. On a Mac, `brew install xcodegen && cd ios && xcodegen generate` replaces the manual "create project in Xcode" step in §7/§8.4.

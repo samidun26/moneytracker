@@ -1,12 +1,15 @@
 import Foundation
 import SwiftData
 
-/// A single income or expense entry. Amount is a positive integer rupiah —
+/// A single income, expense or transfer. Amount is a positive integer rupiah —
 /// `type` carries the sign, matching the reference web app's approach
 /// (src/db/types.ts `Transaction`, src/lib/money.ts) to avoid float
 /// rounding bugs. Clamping to `CurrencyFormatter.maxAmount` and rejecting
 /// non-positive amounts is the input layer's job (the Add Transaction
 /// view/view model), not this model's.
+///
+/// Everything after `updatedAt` was added after the first release; each is
+/// optional so SwiftData can migrate an existing store automatically.
 @Model
 final class Transaction {
     var id: UUID
@@ -23,6 +26,20 @@ final class Transaction {
     var createdAt: Date
     var updatedAt: Date
 
+    /// The account money leaves (expense, transfer) or enters (income).
+    @Relationship(deleteRule: .nullify)
+    var account: Account?
+    /// Transfers only: the account money arrives in.
+    @Relationship(deleteRule: .nullify)
+    var toAccount: Account?
+    /// Set when the user answers "worth it?" on a purchase.
+    var rating: WorthRating?
+    /// Set when this transaction was generated from a RecurringRule.
+    var recurringID: UUID?
+    /// Deterministic "<ruleID>|yyyy-MM-dd" so a recurring occurrence is
+    /// never posted twice (src/domain/recurring.ts `recurringTxId`).
+    var occurrenceKey: String?
+
     init(
         id: UUID = UUID(),
         type: TransactionType,
@@ -31,7 +48,12 @@ final class Transaction {
         note: String = "",
         date: Date,
         createdAt: Date = .now,
-        updatedAt: Date = .now
+        updatedAt: Date = .now,
+        account: Account? = nil,
+        toAccount: Account? = nil,
+        rating: WorthRating? = nil,
+        recurringID: UUID? = nil,
+        occurrenceKey: String? = nil
     ) {
         self.id = id
         self.type = type
@@ -41,5 +63,10 @@ final class Transaction {
         self.date = date
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.account = account
+        self.toAccount = toAccount
+        self.rating = rating
+        self.recurringID = recurringID
+        self.occurrenceKey = occurrenceKey
     }
 }

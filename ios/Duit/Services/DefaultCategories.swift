@@ -6,7 +6,7 @@ import SwiftData
 /// converge under sync; the native MVP has no sync yet (see CLAUDE.md), so
 /// plain UUIDs are fine here — revisit if/when CloudKit sync is added.
 enum DefaultCategories {
-    private static let items: [(kind: TransactionType, name: String, icon: String, color: CategoryColor)] = [
+    static let items: [(kind: TransactionType, name: String, icon: String, color: CategoryColor)] = [
         (.expense, "Food & Drinks", "🍜", .orange),
         (.expense, "Coffee & Snacks", "☕", .brown),
         (.expense, "Groceries", "🛒", .green),

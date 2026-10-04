@@ -1,0 +1,58 @@
+# XcodeGen spec — generates Duit.xcodeproj from the source folders so CI (and
+# a Mac, via `brew install xcodegen && xcodegen generate`) get a project
+# without hand-maintaining a .pbxproj. The generated .xcodeproj is gitignored.
+#
+# Settings mirror what Xcode's "iOS App / SwiftUI / SwiftData" template
+# produces. See docs/IOS_NATIVE_PLAN.md §9.
+name: Duit
+
+options:
+  deploymentTarget:
+    iOS: "17.0" # SwiftData + ContentUnavailableView need iOS 17
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0" # the source is unverified; don't opt into Swift 6 strict concurrency yet
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  Duit:
+    type: application
+    platform: iOS
+    sources: [Duit]
+    settings:
+      base:
+        # PLACEHOLDER bundle ID — fine for CI and sideloading, but must be
+        # replaced with the real reverse-DNS ID before the Apple Developer /
+        # TestFlight phase (it can't be changed once registered).
+        PRODUCT_BUNDLE_IDENTIFIER: com.samidun26.duit
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Duit
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_NSFaceIDUsageDescription: "Duit uses Face ID to keep your money private when the lock is on."
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+        INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+
+  DuitTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [DuitTests]
+    dependencies:
+      - target: Duit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.samidun26.duit.tests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Duit:
+    build:
+      targets:
+        Duit: all
+        DuitTests: [test]
+    test:
+      targets: [DuitTests]

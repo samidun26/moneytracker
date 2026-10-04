@@ -9,3 +9,8 @@ coverage
 .DS_Store
 .vercel
 screenshots/tmp
+
+# iOS: Duit.xcodeproj is generated from ios/project.yml
+ios/*.xcodeproj
+ios/build
+*.ipa
