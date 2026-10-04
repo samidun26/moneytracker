@@ -46,7 +46,7 @@ struct RetroAppBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            DuitLogo(points: 24)
+            DuitLogo(points: 28)
             Text(title)
                 .font(.pixel(18))
                 .foregroundStyle(Theme.ink)

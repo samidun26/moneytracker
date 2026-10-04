@@ -43,6 +43,30 @@ final class ThemeTests: XCTestCase {
         }
     }
 
+    func testTheLogoStaysInsideItsGridAndIsNotEmpty() {
+        let all = DuitLogoData.outline + DuitLogoData.layers.flatMap { $0.rects }
+        XCTAssertFalse(DuitLogoData.outline.isEmpty)
+        XCTAssertFalse(DuitLogoData.layers.isEmpty)
+        for r in all {
+            XCTAssertTrue(
+                r.x >= 0 && r.y >= 0 && r.w > 0 && r.h > 0
+                    && r.x + r.w <= DuitLogoData.width && r.y + r.h <= DuitLogoData.height,
+                "the logo has a rectangle outside its \(DuitLogoData.width)x\(DuitLogoData.height) grid: \(r)"
+            )
+        }
+    }
+
+    func testNoLogoPixelIsPaintedTwice() {
+        var seen = Set<[Int]>()
+        for r in DuitLogoData.outline + DuitLogoData.layers.flatMap { $0.rects } {
+            for x in r.x..<(r.x + r.w) {
+                for y in r.y..<(r.y + r.h) {
+                    XCTAssertTrue(seen.insert([x, y]).inserted, "logo pixel (\(x), \(y)) is in two layers")
+                }
+            }
+        }
+    }
+
     func testHexColorsDecodeToTheRightChannels() {
         var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         UIColor(hex: 0x3553E8).getRed(&r, green: &g, blue: &b, alpha: &a)

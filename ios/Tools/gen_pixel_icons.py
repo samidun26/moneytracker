@@ -17,7 +17,7 @@ OUTPUT = ROOT / "ios/Duit/Resources/PixelIconData.swift"
 
 USED = [
     # app chrome and tab bar
-    "logo", "coin", "home", "activity", "plus", "chart", "panel",
+    "home", "activity", "plus", "chart", "panel",
     # window title icons
     "battery", "term", "hourglass", "cash", "search", "star", "briefcase",
     "check", "caution", "cloud", "arrowup",

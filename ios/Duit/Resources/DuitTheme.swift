@@ -61,7 +61,6 @@ enum Theme {
 
     // MARK: Category tiles — bright in both modes, always dark ink on top
     static let tileInk = Color(hex: 0x22223B)
-    static let logoCoin = Color(hex: 0xF2B11B)
 
     // MARK: Battery cells and budget meters
     static let okFill = Color(day: 0x2FB36A, night: 0x4ADE80)

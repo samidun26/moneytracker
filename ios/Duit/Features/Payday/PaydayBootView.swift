@@ -17,10 +17,7 @@ struct PaydayBootView: View {
         ZStack {
             Color(hex: 0x141633).ignoresSafeArea()
             VStack(spacing: 14) {
-                ZStack {
-                    PixelIcon(rects: PixelIconData.logo, points: 64).foregroundStyle(ink)
-                    PixelIcon(rects: PixelIconData.coin, points: 64).foregroundStyle(Theme.logoCoin)
-                }
+                DuitLogo(points: 90, outline: ink)
                 Text("DUIT OS")
                     .font(.pixel(32))
                     .foregroundStyle(ink)
