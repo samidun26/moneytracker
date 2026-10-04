@@ -278,6 +278,32 @@ Requested: "implement CSV import / bank statement, you decide the format, and ex
 
 **Not verified:** this container has no Swift toolchain, so CI is the compiler and the tests' only runner. The statement layouts in `CSVImportTests` are typical shapes written for the tests, **not real bank files**. The first real check is importing your own bank's CSV on your iPhone; tell me which bank and what goes wrong and I'll add that layout to the tests.
 
+## 9e. Profiles: "Mine", "Us" (2026-10-04)
+
+Requested: a separate profile for the user's own money and another for the user and their partner (shared money, expenses…) "that doesn't affect mine". Decisions (yours): **same iPhone** (switch profiles), **fully separate**, **everything per profile**, **no per-profile lock** (the app lock covers all).
+
+**How it works.** Every profile is its **own database file** (`ProfileStores` keeps one `ModelContainer` per profile; the screens only ever get the open profile's). So nothing in one profile can show up in, or change, another by construction, and Today, Activity, Insights, budgets, bills, Payday Split, the battery, CSV import/export and Reset all work exactly as before, scoped to the open profile, with no change to the existing models, `Ledger` or calculations. Your existing data **is** the first profile, "Mine": it keeps using `default.store` and the standard settings, so nothing is moved, copied or migrated.
+
+| Piece | Where |
+|---|---|
+| The list of profiles, rules (unique names, max 6, the open and first can't be deleted), saved as JSON in UserDefaults | `Services/Profiles.swift` (`ProfileRegistry`) |
+| One database per profile, switching, deleting | `Services/ProfileStores.swift`, `Services/Store.swift` (`makeContainer(storeName:)`, `deleteFiles`) |
+| Per-profile settings: payday day, salary, the Payday Split done, the wallet used last | `Prefs.profile` (the open profile's own UserDefaults; the first profile uses `.standard`) |
+| App-bar chip (color + name, always shown), switcher, add / rename / recolor / delete | `Features/Profiles/ProfilesView.swift`, `RetroAppBar`, Settings → Profiles |
+| Switching rebuilds the screens (the same trick as changing palette) and keeps the lock state, so it never asks for Face ID again | `AppShell` |
+
+**Still shared across profiles (device-wide):** look (theme, palette, dots) and the Face ID lock. **Separate per profile:** wallets, transactions, budgets, bills, Payday Split buckets, spending money, salary, payday day.
+
+**Things to know:**
+
+- **Bills post when their profile is open.** Auto-post bills in "Us" are logged (with catch-up for every missed date) the next time you open "Us", not while "Mine" is open.
+- **Widgets show the profile you last used.** Their numbers come from the open profile's snapshot; they don't say which profile (not built).
+- **Export / Import CSV act on the open profile**; a non-first profile's file is named `duit-<profile>-transactions-<date>.csv`, and the import preview says which profile it goes into. This is also the way to move "Us" to your partner's iPhone by hand today; see below.
+- **Delete is permanent** (database files and settings), after a confirmation. The first profile can only be emptied with Reset all data. Reset all data now empties the **open profile only**.
+- The profile list is a small JSON in UserDefaults. If it were ever lost, each profile's database file would still be on the phone but unlisted (there's no "find lost profiles" screen).
+- **Not built:** a combined "All profiles" overview, copying a transaction between profiles, per-profile lock, "paid by me / partner" on shared spending or a settle-up summary, and **live sharing with a partner's own iPhone** (SwiftData can't share a database between two people; that means CloudKit sharing, its own project and listed as "later" in §3).
+- **Not verified on a device:** this container has no Swift toolchain, so CI is the compiler. In particular, opening a second SwiftData store next to the first, and the chip's fit on small iPhones, are untested on real hardware.
+
 ## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
 
 `ios/project.yml` (XcodeGen spec) + `.github/workflows/ios.yml` give this repo a Swift compiler it otherwise lacks: on every push touching `ios/**`, a GitHub-hosted macOS runner generates the Xcode project, runs `DuitTests` on an iPhone simulator, and builds an **unsigned** `Duit-unsigned.ipa`, uploaded as a workflow artifact (14-day retention). Compiler errors from the first run are the fastest way to fix the "unverified" code listed in §8.

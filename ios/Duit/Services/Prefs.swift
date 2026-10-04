@@ -2,7 +2,19 @@ import Foundation
 
 /// UserDefaults keys for simple settings, shared by the views (@AppStorage)
 /// and by code that has no view (the theme's dynamic colors, the lock).
+///
+/// Some settings belong to the whole device (look, lock) and live in
+/// `UserDefaults.standard`. Others belong to one **profile** (payday day,
+/// salary, the split done for a period, the wallet used last): they live in
+/// `Prefs.profile`, which is the active profile's own defaults. The original
+/// profile uses `.standard` itself, so nothing that was saved before profiles
+/// existed has to move.
 enum Prefs {
+    /// Where the active profile's own settings live (see `ProfilePrefs`). Set
+    /// when the app starts and whenever the profile is switched, before the
+    /// screens are rebuilt; read it, don't cache it.
+    static var profile: UserDefaults = .standard
+
     /// "auto" | "day" | "night"
     static let theme = "pref.theme"
     /// "candy" | "arcade" | "sunset"
@@ -26,7 +38,7 @@ enum Prefs {
     }
 
     static var paydayDayValue: Int {
-        let v = UserDefaults.standard.integer(forKey: paydayDay)
+        let v = profile.integer(forKey: paydayDay)
         return v == 0 ? defaultPaydayDay : min(31, max(1, v))
     }
 }

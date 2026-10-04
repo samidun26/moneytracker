@@ -18,6 +18,7 @@ struct ImportCSVView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Environment(Toaster.self) private var toaster
+    @Environment(ProfileStores.self) private var stores
 
     /// The wallet for rows that name none: every bank-statement row.
     @State private var walletID: UUID?
@@ -75,6 +76,9 @@ struct ImportCSVView: View {
                 .foregroundStyle(Theme.ink2)
                 .lineLimit(1)
                 .truncationMode(.middle)
+            Text("Goes into profile \"\(stores.active.name)\"")
+                .font(.plex(12, .semibold))
+                .foregroundStyle(Theme.ink)
         }
         .accessibilityElement(children: .combine)
     }

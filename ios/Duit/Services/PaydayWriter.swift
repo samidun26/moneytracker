@@ -54,7 +54,7 @@ enum PaydayWriter {
         }
 
         try? context.save()
-        UserDefaults.standard.set(ledger.period.start.timeIntervalSince1970, forKey: Prefs.lastSplitPeriod)
+        Prefs.profile.set(ledger.period.start.timeIntervalSince1970, forKey: Prefs.lastSplitPeriod)
         return outcome
     }
 }

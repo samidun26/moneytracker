@@ -37,6 +37,7 @@ The **native iOS app in [`ios/`](ios)** is the product. The original React web a
 |---|---|
 | **Today** | The *Tanggal Tua* battery shows how much you can still spend per day until payday, and goes into "power saving" when you're running low. **To do** lists bills to mark Paid or Skip, purchases to rate **Worth it** or **Nyesel** (regret), and wallets due for a balance check, each answered with a rubber stamp. **Recent** shows your latest transactions. |
 | **Fast entry** | Expense, Income and Transfer. A green LCD amount, a keypad with a `000` key, one tap per category, recent-title suggestions, and an Undo toast after saving. |
+| **Profiles** | Keep **Mine** and **Us** (up to six profiles) apart on one iPhone. Each has its own wallets, transactions, budgets, bills, salary and payday, and nothing in one shows up in another. Switch from the chip in the app bar. Your existing data becomes the first profile, "Mine". |
 | **Wallets** | Cash, bank, e-wallet, credit card and savings, each with a live balance. **Balance Check** compares a wallet with your bank or e-wallet app and helps you find the gap. |
 | **Activity** | Transactions grouped by day, with search and All / Money out / Money in filters. Tap a transaction to edit it. |
 | **Insights** | **Month:** spent vs income, budgets with a pace meter, where it went, and six months of trend, shown in rupiah, *mie ayam* or work hours. **Prices:** how the price of what you buy changes. **Habits:** the Habit Time Machine finds what you keep buying, shows what it costs a year, and projects what you'd save by buying it less often. |
@@ -55,7 +56,7 @@ The native app covers the retro prototype, plus an app icon and widgets that the
 
 Left out on purpose: the prototype's **Duit Terminal** (typing `mie ayam 22rb`) was removed from the native app.
 
-Not built yet: iCloud sync (the **Connect…** button says so), a full backup of wallets' starting balances, budgets and bills (the CSV holds transactions only), editing categories (the 22 defaults are fixed), notifications, and first-run onboarding. The roadmap, decisions and known gaps are in [`docs/IOS_NATIVE_PLAN.md`](docs/IOS_NATIVE_PLAN.md).
+Not built yet: iCloud sync and live sharing with a partner's own iPhone (the **Connect…** button says so), a full backup of wallets' starting balances, budgets and bills (the CSV holds transactions only), editing categories (the 22 defaults are fixed), notifications, and first-run onboarding. The roadmap, decisions and known gaps are in [`docs/IOS_NATIVE_PLAN.md`](docs/IOS_NATIVE_PLAN.md).
 
 ## Install on your iPhone
 

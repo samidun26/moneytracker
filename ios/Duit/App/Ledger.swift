@@ -98,7 +98,7 @@ struct Ledger {
     /// has just started (first week), and the user hasn't split it yet.
     var needsPaydaySplit: Bool {
         guard salary > 0 else { return false }
-        let done = UserDefaults.standard.double(forKey: Prefs.lastSplitPeriod)
+        let done = Prefs.profile.double(forKey: Prefs.lastSplitPeriod)
         guard done != period.start.timeIntervalSince1970 else { return false }
         return DateHelpers.diffDays(from: period.start, to: today) <= 6
     }
