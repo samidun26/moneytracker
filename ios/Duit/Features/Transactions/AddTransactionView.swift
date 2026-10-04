@@ -5,6 +5,10 @@ import SwiftData
 /// minus the account/transfer picker (no Accounts in the MVP yet; every
 /// transaction is against a single implicit balance until that slice
 /// lands — see docs/IOS_NATIVE_PLAN.md §3).
+///
+/// Styled after the retro prototype's composer window (design/prototype):
+/// accent title bar with a close box, folder tabs, LCD amount, sunken note
+/// field, tile category grid, LCD-font keypad, and a ringed Save button.
 struct AddTransactionView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -39,119 +43,204 @@ struct AddTransactionView: View {
         return nil
     }
 
-    private var amountDisplayText: String {
-        if showProblem, amount <= 0 { return "Enter an amount" }
-        return "Rp \(CurrencyFormatter.formatNumber(amount))"
-    }
-
     /// Matches the web composer's date input `max` (src/features/transactions/Composer.tsx: `addDays(today, 366)`).
     private var maxDate: Date {
         Calendar.current.date(byAdding: .day, value: 366, to: DateHelpers.today()) ?? DateHelpers.today()
     }
 
+    private var windowTitle: String {
+        editing == nil ? (type == .income ? "New income" : "New expense") : "Edit \(type.rawValue)"
+    }
+
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Picker("Transaction type", selection: $type) {
-                    Text("Expense").tag(TransactionType.expense)
-                    Text("Income").tag(TransactionType.income)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .onChange(of: type) {
-                    if let category, category.kind != type { self.category = nil }
-                }
+        VStack(spacing: 0) {
+            RetroTitleBar(title: windowTitle, tint: Theme.accent, ink: Theme.accentInk) {
+                closeBox
+            }
 
-                Text(amountDisplayText)
-                    .font(.system(size: 40, weight: .semibold))
-                    .foregroundStyle(amount == 0 ? .secondary : (type == .income ? Color(uiColor: .systemGreen) : .primary))
-                    .padding(.top, 16)
-                    .padding(.bottom, 8)
-
-                ScrollView {
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
-                        ForEach(kindCategories) { c in
-                            Button {
-                                category = c
-                            } label: {
-                                VStack(spacing: 4) {
-                                    IconBadge(icon: c.icon, color: c.color)
-                                    Text(c.name)
-                                        .font(.system(size: 11.5))
-                                        .foregroundStyle(category == c ? .primary : .secondary)
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(2)
-                                }
-                                .padding(.vertical, 4)
-                                .background(category == c ? Color(uiColor: .tertiarySystemFill) : .clear)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            }
-                            .buttonStyle(.plain)
-                        }
+            VStack(spacing: 10) {
+                RetroTabs(items: [TransactionType.expense, .income], label: { $0 == .income ? "Income" : "Expense" }, selection: $type)
+                    .onChange(of: type) {
+                        if let category, category.kind != type { self.category = nil }
                     }
-                    .padding(.horizontal)
-                }
 
-                VStack(spacing: 8) {
-                    HStack(spacing: 8) {
-                        DatePicker(
-                            "Date",
-                            selection: $date,
-                            in: ...maxDate,
-                            displayedComponents: .date
-                        )
-                        .labelsHidden()
-                        if DateHelpers.startOfDay(date) == DateHelpers.today() {
-                            Button("Yesterday") {
-                                date = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? date
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                        Spacer()
-                    }
-                    TextField("Add a note (e.g. Kopi Kenangan)", text: $note)
-                        .textFieldStyle(.roundedBorder)
-                }
-                .padding(.horizontal)
-                .padding(.top, 8)
+                amountDisplay
+                noteField
+                categoryGrid
+                dateRow
 
                 Keypad { key in
                     amount = applyKey(amount, key)
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 12)
 
-                Button {
-                    save()
-                } label: {
-                    Text(showProblem ? (problem ?? "Save") : "Save")
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
-                .padding(.top, 8)
-                .padding(.bottom, 8)
+                footer
             }
-            .navigationTitle(editing == nil ? (type == .income ? "New income" : "New expense") : "Edit \(type.rawValue)")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                if editing != nil {
-                    ToolbarItem(placement: .destructiveAction) {
-                        Button(role: .destructive) {
-                            delete()
-                        } label: {
-                            Image(systemName: "trash")
-                        }
-                    }
+            .padding(12)
+        }
+        .background(Theme.paper)
+        .presentationBackground(Theme.paper)
+    }
+
+    // MARK: Pieces
+
+    /// The prototype's "x" box in the title bar. The visible box is small but
+    /// the tap target is the full 44pt.
+    private var closeBox: some View {
+        Button {
+            dismiss()
+        } label: {
+            Text("x")
+                .font(.pixel(14))
+                .foregroundStyle(Theme.ink)
+                .frame(width: 22, height: 22)
+                .background(Theme.face)
+                .overlay { BevelOverlay(topLeft: Theme.hi, bottomRight: Theme.lo) }
+                .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Close without saving")
+    }
+
+    /// Green LCD with unlit "888" ghost digits behind the amount.
+    private var amountDisplay: some View {
+        ZStack(alignment: .bottomTrailing) {
+            Text("888.888.888")
+                .font(.lcd(42))
+                .foregroundStyle(Theme.lcdGhost)
+                .accessibilityHidden(true)
+            Text("Rp \(CurrencyFormatter.formatNumber(amount))")
+                .font(.lcd(42))
+                .foregroundStyle(Theme.lcdInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+        }
+        .padding(.horizontal, 12)
+        .padding(.bottom, 5)
+        .frame(maxWidth: .infinity, minHeight: 66, alignment: .bottomTrailing)
+        .overlay(alignment: .topLeading) {
+            Text(type == .income ? "Income" : "Expense")
+                .font(.plex(11, .bold))
+                .tracking(1.1)
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.lcdInk)
+                .padding(.leading, 10)
+                .padding(.top, 7)
+                .accessibilityHidden(true)
+        }
+        .background(Theme.lcd)
+        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Amount")
+        .accessibilityValue(CurrencyFormatter.formatRp(amount))
+    }
+
+    private var noteField: some View {
+        HStack(spacing: 8) {
+            Text("Note")
+                .font(.plex(10.5, .bold))
+                .tracking(0.8)
+                .textCase(.uppercase)
+                .foregroundStyle(Theme.ink2)
+            TextField(
+                "Note",
+                text: $note,
+                prompt: Text("Add a note (e.g. Kopi Kenangan)").foregroundStyle(Theme.ink2)
+            )
+            .font(.plex(16, .semibold))
+            .foregroundStyle(Theme.ink)
+            .autocorrectionDisabled() // slang like "goceng" shouldn't be "fixed"
+            .submitLabel(.done)
+        }
+        .padding(.horizontal, 10)
+        .frame(minHeight: 44)
+        .retroSunk()
+    }
+
+    /// 4-column tile grid. Scrolls when the screen is too short for every
+    /// category; the scroll bar flashes on appear so that's discoverable.
+    private var categoryGrid: some View {
+        ScrollView {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 4), spacing: 2) {
+                ForEach(kindCategories) { c in
+                    categoryCell(c)
                 }
             }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 4)
+        }
+        .scrollIndicatorsFlash(onAppear: true)
+        .frame(minHeight: 140)
+    }
+
+    private func categoryCell(_ c: Category) -> some View {
+        let selected = category == c
+        return Button {
+            category = c
+        } label: {
+            VStack(spacing: 4) {
+                // Selected: a 2pt paper gap, then a 3pt accent ring.
+                IconBadge(icon: c.icon, color: c.color, size: 44)
+                    .padding(2)
+                    .background(Theme.paper)
+                    .padding(3)
+                    .background(selected ? Theme.accent : Color.clear)
+                Text(c.name)
+                    .font(.plex(10.5))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 1)
+                    .foregroundStyle(selected ? Theme.accentInk : Theme.ink)
+                    .background(selected ? Theme.accent : Color.clear)
+            }
+            .frame(maxWidth: .infinity, minHeight: 72, alignment: .top)
+            .padding(.vertical, 2)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(c.name)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private var dateRow: some View {
+        HStack(spacing: 8) {
+            DatePicker(
+                "Date",
+                selection: $date,
+                in: ...maxDate,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .tint(Theme.accent)
+            if DateHelpers.startOfDay(date) == DateHelpers.today() {
+                Button("Yesterday") {
+                    date = Calendar.current.date(byAdding: .day, value: -1, to: date) ?? date
+                }
+                .buttonStyle(RetroButtonStyle())
+            }
+            Spacer(minLength: 0)
         }
     }
+
+    /// Validation message (only after a failed Save), Delete when editing, Save.
+    private var footer: some View {
+        HStack(spacing: 10) {
+            Text(showProblem ? (problem ?? "") : "")
+                .font(.plex(12, .semibold))
+                .foregroundStyle(Theme.negative)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if editing != nil {
+                Button("Delete") { delete() }
+                    .buttonStyle(RetroButtonStyle(kind: .danger))
+                    .accessibilityLabel("Delete this transaction")
+            }
+            Button("Save") { save() }
+                .buttonStyle(RetroButtonStyle(kind: .primary))
+        }
+    }
+
+    // MARK: Actions
 
     private func save() {
         guard problem == nil else {

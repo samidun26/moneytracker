@@ -155,6 +155,20 @@ Per the governing guide's own instruction — don't build the whole app, build t
 
 **Definition of done for this slice**: a user can manually create an income or expense transaction, close the app, reopen it, and still see the transaction. Nothing past that (Dashboard, Statistics, etc.) starts until this is solid.
 
+## 9a. Retro "Duit OS" theme (applied to the existing two screens)
+
+Decision (yours, 2026-10-04): the native app should look like the retro prototype (`design/prototype/`, [duit-os-prototype.vercel.app](https://duit-os-prototype.vercel.app)), not the web app's iOS-style look. Implemented as a theme layer plus a restyle of Add Transaction and Activity — **no logic or database changes**.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Design tokens | `Resources/DuitTheme.swift` | Day/night colors ported value-for-value from the prototype CSS; follows the system light/dark setting; candy palette only. All text/background pairs pass WCAG AA (≥ 4.5:1) in both modes. |
+| Fonts | `Resources/Fonts/` + `Resources/DuitFonts.swift` | Silkscreen (titles/buttons), VT323 (LCD amount, keys), IBM Plex Mono (body) — all SIL OFL 1.1, license texts bundled beside them. Registered at launch via CoreText; `ThemeTests` fails if a name doesn't resolve (otherwise iOS silently falls back to the system font). Sizes scale with Dynamic Type. |
+| Pixel icons | `Resources/PixelIconData.swift` (generated) | From the prototype's `ICONS`; regenerate with `python3 ios/Tools/gen_pixel_icons.py`. Categories keep storing an emoji; `CategoryPixelIcon` maps it to a pixel icon at draw time and falls back to the emoji for unmapped ones. |
+| Components | `Components/RetroChrome.swift`, `RetroControls.swift`, `PixelIcon.swift`, `IconBadge.swift`, `Keypad.swift` | Desk, app bar + palette stripe, windows with title bars and hard shadows, bevel buttons, folder tabs, sunken field, tiles, keypad. |
+
+**Not done on purpose** (each is its own decision): the prototype's **Today** screen (Tanggal Tua battery, Duit Terminal, To do — new features, not styling), the other four taskbar tabs, palette/day-night switching in Settings.
+**Known gaps:** the date picker is still the system control; tile colors for `teal`/`cyan` have no prototype equivalent and were chosen by eye; `Entertainment` uses the prototype's star icon (its "Fun & Hobbies"); the look hasn't been seen on a device by the author — this container can't render SwiftUI.
+
 ## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
 
 `ios/project.yml` (XcodeGen spec) + `.github/workflows/ios.yml` give this repo a Swift compiler it otherwise lacks: on every push touching `ios/**`, a GitHub-hosted macOS runner generates the Xcode project, runs `DuitTests` on an iPhone simulator, and builds an **unsigned** `Duit-unsigned.ipa`, uploaded as a workflow artifact (14-day retention). Compiler errors from the first run are the fastest way to fix the "unverified" code listed in §8.

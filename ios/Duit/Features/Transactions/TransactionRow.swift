@@ -3,30 +3,36 @@ import SwiftUI
 /// One row in Transaction History. Expenses use normal ink (most rows are
 /// expenses — a wall of red is noise); income is green with "+". Ported
 /// from src/features/transactions/TransactionRow.tsx, minus the
-/// account/transfer parts (no Accounts in the MVP yet).
+/// account/transfer parts (no Accounts in the MVP yet). Styled after the
+/// prototype's `.row`: tile, name over a dim sub-line, amount on the right.
 struct TransactionRow: View {
     var transaction: Transaction
 
     var body: some View {
-        HStack(spacing: 12) {
-            IconBadge(icon: transaction.category?.icon ?? "❔", color: transaction.category?.color ?? .gray)
+        HStack(spacing: 10) {
+            IconBadge(icon: transaction.category?.icon ?? "❔", color: transaction.category?.color ?? .gray, size: 40)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.plex(14, .semibold))
+                    .foregroundStyle(Theme.ink)
                     .lineLimit(1)
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
+                        .font(.plex(11.5))
+                        .foregroundStyle(Theme.ink2)
                         .lineLimit(1)
                 }
             }
             Spacer(minLength: 8)
             Text(amountText)
-                .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(transaction.type == .income ? Color(uiColor: .systemGreen) : .primary)
+                .font(.plex(14, .semibold))
+                .monospacedDigit()
+                .foregroundStyle(transaction.type == .income ? Theme.positive : Theme.ink)
         }
+        .padding(.horizontal, 12)
         .padding(.vertical, 6)
+        .frame(minHeight: 58)
+        .contentShape(Rectangle())
     }
 
     private var title: String {

@@ -10,6 +10,8 @@ struct DuitApp: App {
     let container: ModelContainer
 
     init() {
+        // Fonts must be registered before the first view asks for them.
+        DuitFonts.registerAll()
         do {
             container = try ModelContainer(for: Transaction.self, Category.self)
         } catch {
@@ -21,6 +23,7 @@ struct DuitApp: App {
     var body: some Scene {
         WindowGroup {
             TransactionHistoryView()
+                .tint(Theme.accent)
         }
         .modelContainer(container)
     }

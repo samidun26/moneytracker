@@ -27,30 +27,26 @@ func applyKey(_ amount: Int, _ key: KeypadKey, max: Int = CurrencyFormatter.maxA
 }
 
 /// Numeric keypad with a "000" key — most rupiah amounts end in thousands.
-/// Long-press-⌫-to-clear (present in the web version) is a deferred polish
-/// item, not needed for the first vertical slice.
+/// Styled as the prototype's raised LCD-font keys (`.key`). Long-press-⌫-to-
+/// clear (present in the web version) is a deferred polish item.
 struct Keypad: View {
     var onKey: (KeypadKey) -> Void
 
     var body: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 6) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 3), spacing: 4) {
             ForEach(keypadKeys, id: \.self) { key in
                 Button {
                     onKey(key)
                 } label: {
-                    Group {
-                        if key == .back {
-                            Image(systemName: "delete.left")
-                        } else {
-                            Text(key.rawValue)
-                        }
+                    if key == .back {
+                        Image(systemName: "delete.left")
+                            .font(.system(size: 20, weight: .semibold))
+                            .accessibilityLabel("Delete")
+                    } else {
+                        Text(key.rawValue)
                     }
-                    .font(.system(size: 25))
-                    .frame(maxWidth: .infinity, minHeight: 50)
                 }
-                .buttonStyle(.plain)
-                .background(Color(uiColor: .secondarySystemBackground))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .buttonStyle(RetroButtonStyle(kind: .key))
             }
         }
     }
