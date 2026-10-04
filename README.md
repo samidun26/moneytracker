@@ -23,7 +23,7 @@ Native SwiftUI, local-first, no account.
   <img src="docs/screenshots/retro-today-arcade.png" width="190" alt="Today with the Arcade palette" />
   <img src="docs/screenshots/retro-settings.png" width="190" alt="Settings: look, payday and security" />
 </p>
-<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design, except that it has no Duit Terminal window, which is removed in these images. The logo in the app bar of these images is the older pixel "D"; the app and the live prototype now show the credit cards from the app icon.</sub></p>
+<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design, except that it has no Duit Terminal window, which is left out of these images. Re-render them with <code>node design/render-readme-screenshots.cjs</code>.</sub></p>
 
 ## What it is
 
