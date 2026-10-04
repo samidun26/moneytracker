@@ -11,6 +11,8 @@ struct PriceRow: Equatable {
     let categoryName: String?
     /// One price per month, oldest first (the last price logged that month).
     let history: [Int]
+    /// The month of the first price in `history`.
+    let since: MonthKey
     var first: Int { history.first ?? 0 }
     var last: Int { history.last ?? 0 }
     /// Change from the first to the latest price, in percent.
@@ -43,9 +45,10 @@ enum PriceTracker {
             var perMonth: [MonthKey: Int] = [:]
             for t in ordered { perMonth[MonthKey(t.date)] = t.amount }
             guard perMonth.count >= 2, let latest = ordered.last else { continue }
-            let history = perMonth.keys.sorted().compactMap { perMonth[$0] }
-            guard let first = history.first, first > 0 else { continue }
-            rows.append((items.count, PriceRow(title: latest.title, categoryName: latest.categoryName, history: history)))
+            let months = perMonth.keys.sorted()
+            let history = months.compactMap { perMonth[$0] }
+            guard let first = history.first, first > 0, let since = months.first else { continue }
+            rows.append((items.count, PriceRow(title: latest.title, categoryName: latest.categoryName, history: history, since: since)))
         }
         let top = rows
             .sorted { $0.count != $1.count ? $0.count > $1.count : $0.row.title < $1.row.title }

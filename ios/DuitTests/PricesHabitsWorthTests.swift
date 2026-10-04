@@ -24,6 +24,7 @@ final class PricesHabitsWorthTests: XCTestCase {
         XCTAssertEqual(row.first, 15_000)
         XCTAssertEqual(row.last, 20_000)
         XCTAssertEqual(row.percent, 33) // the prototype's "+33%"
+        XCTAssertEqual(row.since, MonthKey(year: 2026, month: 5))
         XCTAssertEqual(row.barHeights, [17, 18, 20, 20, 22])
         XCTAssertEqual(result.basket, 33)
     }

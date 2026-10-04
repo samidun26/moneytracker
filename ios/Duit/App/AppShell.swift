@@ -46,6 +46,7 @@ struct RootView: View {
     @AppStorage(Prefs.salary) private var salary = 0
 
     @State private var composer: ComposerRequest?
+    @State private var balanceTarget: BalanceCheckTarget?
     @State private var alert: RetroAlertContent?
 
     var body: some View {
@@ -80,6 +81,9 @@ struct RootView: View {
         .sheet(item: $composer) { request in
             AddTransactionView(request: request, ledger: ledger)
         }
+        .sheet(item: $balanceTarget) { target in
+            BalanceCheckView(ledger: ledger, initialAccountID: target.id)
+        }
         .retroAlert($alert)
         .task { RecurringPoster.postDue(in: context) }
         .onChange(of: scenePhase) {
@@ -96,17 +100,15 @@ struct RootView: View {
                 onEdit: { composer = .edit($0) },
                 onGoActivity: { tab = .activity },
                 onGoSettings: { tab = .settings },
-                onCheckBalance: { _ in
-                    alert = RetroAlertContent(
-                        title: "Balance Check",
-                        message: "Comparing a wallet with your bank or e-wallet app arrives in the next update.",
-                        icon: PixelIconData.search
-                    )
-                },
+                onCheckBalance: { balanceTarget = BalanceCheckTarget(id: $0) },
                 onPayday: { tab = .settings }
             )
         case .activity:
-            ActivityView(ledger: ledger, onEdit: { composer = .edit($0) })
+            ActivityView(
+                ledger: ledger,
+                onEdit: { composer = .edit($0) },
+                onCheckBalance: { balanceTarget = BalanceCheckTarget(id: $0) }
+            )
         case .insights:
             InsightsView(ledger: ledger)
         case .settings:

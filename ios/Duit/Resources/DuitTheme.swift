@@ -74,6 +74,10 @@ enum Theme {
             : UIColor(hex: 0x22223B, alpha: 0.12)
     })
 
+    // MARK: Insight bars (the prototype's --exp and --inc)
+    static let expenseBar = Color(day: 0x3553E8, night: 0x6F7EF0)
+    static let incomeBar = Color(day: 0x1E9E57, night: 0x2EA863)
+
     // MARK: Duit Terminal (dark in both modes, like the prototype's `.term`)
     static let terminalBackground = Color(hex: 0x16182F)
     static let terminalGreen = Color(hex: 0x9EF0C8)
