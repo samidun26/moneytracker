@@ -19,7 +19,7 @@ final class StoreTests: XCTestCase {
     func testANewTransactionCarriesItsWalletRatingAndRecurrence() throws {
         let ctx = makeContext()
         let wallet = Account(name: "GoPay", kind: .ewallet, openingBalance: 100_000)
-        let food = Category(name: "Food & Drinks", icon: "🍜", color: .orange, kind: .expense, order: 0)
+        let food = Duit.Category(name: "Food & Drinks", icon: "🍜", color: .orange, kind: .expense, order: 0)
         let ruleID = UUID()
         ctx.insert(wallet)
         ctx.insert(food)
@@ -67,7 +67,7 @@ final class StoreTests: XCTestCase {
             DefaultSplitBuckets.seedIfNeeded(ctx)
             try ctx.save()
         }
-        XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Category>()), DefaultCategories.items.count)
+        XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Duit.Category>()), DefaultCategories.items.count)
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<Account>()), 3)
         XCTAssertEqual(try ctx.fetchCount(FetchDescriptor<SplitBucket>()), 4)
         let kinds = try ctx.fetch(FetchDescriptor<Account>(sortBy: [SortDescriptor(\.order)])).map(\.kind)
