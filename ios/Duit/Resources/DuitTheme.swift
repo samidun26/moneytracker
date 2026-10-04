@@ -78,14 +78,8 @@ enum Theme {
     static let expenseBar = Color(day: 0x3553E8, night: 0x6F7EF0)
     static let incomeBar = Color(day: 0x1E9E57, night: 0x2EA863)
 
-    // MARK: Duit Terminal (dark in both modes, like the prototype's `.term`)
-    static let terminalBackground = Color(hex: 0x16182F)
-    static let terminalGreen = Color(hex: 0x9EF0C8)
-    static let terminalPink = Color(hex: 0xFFB3C7)
-    static let terminalError = Color(hex: 0xFF9B9B)
-    static let terminalDim = Color(hex: 0x9A9CC6)
-    static let terminalYellow = Color(hex: 0xFFD45C)
-    static let terminalText = Color(hex: 0xF2F0FA)
+    // MARK: Toast (dark in both modes)
+    static let toastText = Color(hex: 0xF2F0FA)
 
     // MARK: Rubber-stamp inks
     static let redInk = Color(day: 0xD93636, night: 0xFF7B7B)

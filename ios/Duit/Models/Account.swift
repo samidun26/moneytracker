@@ -3,7 +3,7 @@ import SwiftData
 
 /// What kind of wallet an account is (src/db/types.ts `AccountType`,
 /// src/db/seed.ts `ACCOUNT_TYPES`). The kind picks the icon and color, and
-/// the Terminal uses it to understand words like "tunai" or "gopay".
+/// the Add screen uses it to pick a sensible default wallet.
 enum AccountKind: String, Codable, CaseIterable {
     case cash, bank, ewallet, credit, savings
 

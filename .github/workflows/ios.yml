@@ -85,6 +85,11 @@ jobs:
         run: |
           unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/(Duit|Info.plist)$"
           plutil -p Payload/Duit.app/Info.plist | grep -E "CFBundleIdentifier|CFBundleShortVersionString|MinimumOSVersion|DTPlatformName|UIDeviceFamily"
+          # The widget extension is embedded, the icon is compiled in, and the duit:// scheme is registered.
+          unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/PlugIns/DuitWidget.appex/DuitWidget$"
+          unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/Assets.car$"
+          plutil -p Payload/Duit.app/Info.plist | grep -E "CFBundleURLSchemes" -A2
+          plutil -p Payload/Duit.app/PlugIns/DuitWidget.appex/Info.plist | grep -E "NSExtensionPointIdentifier|CFBundleIdentifier"
       - uses: actions/upload-artifact@v4
         with:
           name: Duit-unsigned-ipa

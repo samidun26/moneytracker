@@ -11,7 +11,7 @@ enum PaydayWriter {
         var salaryTransactionID: UUID?
     }
 
-    /// Salary already logged since the period began (by hand or from the Terminal).
+    /// Salary already logged since the period began (logged by hand).
     static func salaryAlreadyLogged(_ entries: [Entry], since start: Date) -> Bool {
         entries.contains { $0.type == .income && $0.categoryName == "Salary" && $0.date >= start }
     }

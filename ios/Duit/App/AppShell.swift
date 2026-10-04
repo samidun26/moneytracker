@@ -17,6 +17,11 @@ struct AppShell: View {
     /// Bumped when the app locks: rebuilding the desk closes any open sheet,
     /// which would otherwise float above the lock screen.
     @State private var lockEpoch = 0
+    /// A widget tap waiting to be acted on. It's held back while the lock
+    /// covers the app, then handed to the desk once you've unlocked.
+    @State private var route: AppRoute?
+
+    private var covered: Bool { faceLock && (locked || scenePhase != .active) }
 
     private var scheme: ColorScheme? {
         switch theme {
@@ -28,15 +33,18 @@ struct AppShell: View {
 
     var body: some View {
         ZStack {
-            RootView(tab: $tab)
+            RootView(tab: $tab, route: covered ? Binding<AppRoute?>.constant(nil) : $route)
                 .id("\(palette)-\(lockEpoch)")
-            if faceLock && (locked || scenePhase != .active) {
+            if covered {
                 LockScreen(locked: locked, onUnlock: unlock)
             }
         }
         .environment(toaster)
         .preferredColorScheme(scheme)
         .tint(Theme.accent)
+        .onOpenURL { url in
+            if let incoming = AppRoute(url: url) { route = incoming }
+        }
         .onChange(of: scenePhase) {
             if scenePhase == .background && faceLock {
                 locked = true
@@ -63,6 +71,8 @@ struct AppShell: View {
 /// sheets that open over them.
 struct RootView: View {
     @Binding var tab: AppTab
+    /// Set when a widget (or a duit:// link) asks for something.
+    @Binding var route: AppRoute?
 
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
@@ -76,12 +86,17 @@ struct RootView: View {
     @Query private var rules: [RecurringRule]
     @AppStorage(Prefs.paydayDay) private var paydayDay = Prefs.defaultPaydayDay
     @AppStorage(Prefs.salary) private var salary = 0
+    @AppStorage(Prefs.faceLock) private var faceLock = false
+    @AppStorage(Prefs.palette) private var palette = "candy"
 
     @State private var composer: ComposerRequest?
     @State private var balanceTarget: BalanceCheckTarget?
     @State private var alert: RetroAlertContent?
     @State private var booting = false
     @State private var splitOpen = false
+    /// Bumped when a widget opens the app, so the open screen starts fresh
+    /// (closing any sheet it had open and scrolling back to the top).
+    @State private var routeEpoch = 0
 
     var body: some View {
         let ledger = Ledger(
@@ -93,9 +108,17 @@ struct RootView: View {
             paydayDay: paydayDay,
             salary: salary
         )
+        let widget = WidgetSnapshotBuilder.make(
+            entries: ledger.entries,
+            battery: ledger.battery,
+            today: ledger.today,
+            hideAmounts: faceLock,
+            palette: palette
+        )
         ZStack {
             DeskBackground()
             screen(ledger)
+                .id(routeEpoch)
         }
         .overlay(alignment: .bottom) {
             if let message = toaster.current {
@@ -134,6 +157,29 @@ struct RootView: View {
         }
         .onChange(of: scenePhase) {
             if scenePhase == .active { RecurringPoster.postDue(in: context) }
+        }
+        .onChange(of: widget, initial: true) { WidgetSync.push(widget) }
+        .onChange(of: route, initial: true) {
+            guard let incoming = route else { return }
+            route = nil
+            open(incoming)
+        }
+    }
+
+    /// Where a widget tap lands: Today, or straight onto a new expense.
+    private func open(_ incoming: AppRoute) {
+        let hadSheet = composer != nil || balanceTarget != nil || splitOpen || tab == .settings
+        composer = nil
+        balanceTarget = nil
+        splitOpen = false
+        alert = nil
+        tab = .today
+        routeEpoch += 1
+        guard incoming == .addExpense else { return }
+        // If a sheet was open, give it a moment to close before the next one rises.
+        Task { @MainActor in
+            if hadSheet { try? await Task.sleep(for: .milliseconds(400)) }
+            composer = .add(.expense)
         }
     }
 
