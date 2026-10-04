@@ -23,7 +23,7 @@ Native SwiftUI, local-first, no account.
   <img src="docs/screenshots/retro-today-arcade.png" width="190" alt="Today with the Arcade palette" />
   <img src="docs/screenshots/retro-settings.png" width="190" alt="Settings: look, payday and security" />
 </p>
-<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design, except that it has no Duit Terminal window and says "iPhone passcode" where the prototype says PIN; both are adjusted in these images.</sub></p>
+<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design, except that it has no Duit Terminal window, which is removed in these images. The logo in the app bar of these images is the older pixel "D"; the app and the live prototype now show the credit cards from the app icon.</sub></p>
 
 ## What it is
 
@@ -99,7 +99,7 @@ ios/
 ├── DuitWidget/       WidgetKit extension: Spending and Quick add
 ├── Shared/           the small snapshot the app hands the widgets (App Group)
 ├── DuitTests/        unit tests for the services
-├── Tools/            scripts that generate the pixel icons and the app icon
+├── Tools/            scripts that generate the pixel icons, the app icon and the in-app logo
 └── project.yml       XcodeGen spec
 design/prototype/     the interactive retro prototype (HTML), the visual and UX spec
 ```
@@ -111,7 +111,7 @@ Amounts are integer rupiah, so there are no rounding bugs. The calculation rules
 - Your data lives in a SwiftData store on your iPhone. The app has no server, no account and no analytics, and never makes a network request.
 - **Export CSV** only shares a file when you ask for it.
 - Widgets never read your transactions. The app hands them a small snapshot (today's and this month's totals, the battery and the palette) through an App Group on the device, and they show "Locked" when the lock is on.
-- The lock is a privacy screen, not extra encryption. It uses Face ID with your iPhone passcode as the fallback, and locks as soon as the app goes to the background. Data at rest relies on iOS device encryption, which is on whenever your iPhone has a passcode.
+- The lock is a privacy screen, not extra encryption. It uses Face ID, and if Face ID doesn't work (not recognised, too many tries, or not set up) iOS asks for your iPhone passcode instead; Duit has no password of its own. It locks as soon as the app goes to the background. Data at rest relies on iOS device encryption, which is on whenever your iPhone has a passcode.
 
 ## Legacy web app
 

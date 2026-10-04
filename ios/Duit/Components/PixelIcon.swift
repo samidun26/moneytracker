@@ -40,14 +40,48 @@ struct PixelIcon: View {
     }
 }
 
-/// The Duit "D" with its coin, as in the prototype's app bar.
+/// The Duit logo: the pixel-art credit cards from the app icon (see
+/// Resources/DuitLogoData.swift). The card colors are fixed; the outer edge
+/// is drawn in `outline` (the theme's ink by default) so it shows on both the
+/// day and the night bar.
+///
+/// `points` is the logo's approximate height. As with `PixelIcon`, the pixel
+/// size is rounded to whole device pixels, so the edges stay crisp.
 struct DuitLogo: View {
-    var points: CGFloat = 24
+    var points: CGFloat = 28
+    var outline: Color = Theme.ink
+
+    @Environment(\.displayScale) private var displayScale
+
+    private var unit: CGFloat {
+        let scale = max(1, displayScale)
+        return max(1, (points * scale / CGFloat(DuitLogoData.height)).rounded()) / scale
+    }
+
+    private static func path(_ rects: PixelRects, unit u: CGFloat) -> Path {
+        var path = Path()
+        for r in rects {
+            path.addRect(CGRect(
+                x: CGFloat(r.x) * u,
+                y: CGFloat(r.y) * u,
+                width: CGFloat(r.w) * u,
+                height: CGFloat(r.h) * u
+            ))
+        }
+        return path
+    }
 
     var body: some View {
-        ZStack {
-            PixelIcon(rects: PixelIconData.logo, points: points).foregroundStyle(Theme.ink)
-            PixelIcon(rects: PixelIconData.coin, points: points).foregroundStyle(Theme.logoCoin)
+        let u = unit
+        Canvas { context, _ in
+            let crisp = FillStyle(antialiased: false)
+            for layer in DuitLogoData.layers {
+                context.fill(Self.path(layer.rects, unit: u), with: .color(Color(hex: layer.hex)), style: crisp)
+            }
+            context.fill(Self.path(DuitLogoData.outline, unit: u), with: .foreground, style: crisp)
         }
+        .frame(width: CGFloat(DuitLogoData.width) * u, height: CGFloat(DuitLogoData.height) * u)
+        .foregroundStyle(outline)
+        .accessibilityHidden(true)
     }
 }

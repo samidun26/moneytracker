@@ -191,7 +191,7 @@ struct SettingsView: View {
     private var securityGroup: some View {
         RetroGroup(title: "Security") {
             RetroOptionRow(label: "Require \(lockMethod) to open", isOn: faceLock, style: .check) { toggleLock() }
-            note("Your iPhone passcode always works as a backup. Duit never stores a password of its own.")
+            note("\(AppLock.backupNote(for: lockMethod)) Duit never stores a password of its own.")
         }
     }
 

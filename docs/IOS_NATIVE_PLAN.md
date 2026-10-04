@@ -196,7 +196,7 @@ The prototype ran on sample data; the native app reads **your** transactions for
 
 - Screens read one value-type `Ledger` snapshot built in `RootView` from the SwiftData `@Query` results. All rules live in pure `Services/` functions over plain `Entry` values, so they're unit-tested without a database; writes go through `EntryWriter`, `RecurringPoster` and `PaydayWriter`.
 - New fields on `Transaction` are optional (SwiftData migrates them automatically), and `Store.makeContainer` never deletes an unreadable store: it moves it aside as `default.store.backup-<time>` and tells you once.
-- No backend, no custom account. The optional lock is Face ID with the iPhone's own passcode as the backup.
+- No backend, no custom account. The optional lock is Face ID with the iPhone's own passcode as the backup (§9c).
 
 ### Product decisions I made — please confirm or override
 
@@ -227,6 +227,10 @@ The prototype ran on sample data; the native app reads **your** transactions for
 Requested: put the pixel credit-card art in as the icon, remove the Duit Terminal, and add widgets ("current spends" and an "add to log" shortcut that opens the app on a new expense; the kinds were left to me).
 
 **App icon** — `Duit/Assets.xcassets/AppIcon.appiconset/AppIcon.png`, 1024×1024, opaque (iOS adds the rounded corners). The source picture was 565 px, so a plain upscale would have blurred the pixel edges. `ios/Tools/make_app_icon.py` finds the art's pixel grid (about 11.2 px per art pixel), keeps the sprite as square crisp pixels and enlarges the soft pastel background smoothly; re-run it with a higher-resolution original for a sharper result.
+
+**Logo in the app (2026-10-04)** — the app bar, the lock screen and the Payday boot screen used to draw the prototype's pixel "D" with a coin; they now draw the same credit cards as the app icon (`DuitLogo`, data in the generated `Resources/DuitLogoData.swift`). `ios/Tools/make_logo_sprite.py` reads the art-pixel grid straight back out of `AppIcon.png` (so there's no second source picture to keep in sync), drops the soft shadow, and writes both the Swift data and the prototype's `<symbol id="duit-logo">`. The outer black edge is painted in the theme's ink colour so it stays visible on the night-mode bar; black pixels inside the art (the magnetic stripe) stay black. The prototype's `icon-192.png`, `icon-512.png` and `apple-touch-icon.png` were re-made from the same icon. Not redone: the README screenshots (`docs/screenshots/`, still the old "D"), and the old React app's own icons in `public/`.
+
+**Lock (2026-10-04)** — unchanged in principle: Face ID first, the iPhone passcode as the backup, no Duit PIN. `AppLock` uses the `.deviceOwnerAuthentication` policy, which is what puts the passcode in the same system prompt when Face ID isn't recognised, is locked out after too many tries, or isn't set up. What changed: only "this iPhone has no passcode" (`LAError.passcodeNotSet`) now switches the lock off; before, *any* failure of the availability check did, so a momentary system error could silently turn the lock off. The lock screen and Settings say what the backup is, and the prototype's Settings text changed from "6-digit PIN" to the iPhone passcode (the prototype's checkbox is only a mock; a browser can't show the real Face ID or passcode prompt). `AppLockTests` covers the error mapping.
 
 **Widgets** (`ios/DuitWidget/`, a WidgetKit extension; Home Screen and Lock Screen):
 
