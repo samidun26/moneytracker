@@ -4,7 +4,7 @@ import SwiftData
 /// First-launch defaults for the things added after the first release.
 /// Everything here is idempotent: safe to run on every launch.
 enum DefaultAccounts {
-    /// Cash, a bank and an e-wallet — the three the Terminal's slang knows.
+    /// Cash, a bank and an e-wallet — the three everyday ways money moves.
     /// Rename or add more in Settings → Wallets.
     static let items: [(name: String, kind: AccountKind)] = [
         ("Cash", .cash), ("Bank", .bank), ("E-wallet", .ewallet),

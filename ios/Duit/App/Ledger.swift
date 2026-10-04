@@ -103,54 +103,6 @@ struct Ledger {
         return DateHelpers.diffDays(from: period.start, to: today) <= 6
     }
 
-    // MARK: Terminal
-
-    func parseContext() -> ParseContext {
-        ParseContext(
-            accounts: accountRefs,
-            history: entries,
-            defaultExpenseAccountID: AccountDefaults.expense(accountRefs, last: AccountDefaults.read(Prefs.lastExpenseAccount)),
-            defaultIncomeAccountID: AccountDefaults.income(accountRefs, last: AccountDefaults.read(Prefs.lastIncomeAccount))
-        )
-    }
-
-    func terminalContext() -> TerminalContext {
-        let spending = monthExpenses
-        var byCategory: [String: Int] = [:]
-        for e in spending { byCategory[e.categoryName ?? "Uncategorized", default: 0] += e.amount }
-
-        let allowanceLines: [String]
-        if let b = battery {
-            allowanceLines = [
-                "\(CurrencyFormatter.formatRp(b.allowance)) a day for \(b.daysLeft) \(b.daysLeft == 1 ? "day" : "days") (battery \(b.percent)%).",
-                "Payday: \(DateHelpers.formatPayday(period.nextPayday)).",
-            ]
-        } else {
-            allowanceLines = ["Set your spending money in Settings to start the battery."]
-        }
-
-        let prices = PriceTracker.rows(entries, today: today)
-        let inflationLines: [String]
-        if let top = prices.rows.max(by: { $0.percent < $1.percent }) {
-            inflationLines = [
-                "Your basket: \(prices.basket >= 0 ? "+" : "")\(prices.basket)% in 12 months.",
-                "Biggest jump: \(top.title) \(top.percent >= 0 ? "+" : "")\(top.percent)%.",
-            ]
-        } else {
-            inflationLines = ["Not enough repeated purchases yet. Log the same thing a few times."]
-        }
-
-        return TerminalContext(
-            monthName: currentMonth.fullName,
-            totalSpent: spending.reduce(0) { $0 + $1.amount },
-            spentByCategory: byCategory,
-            categoryNames: categories(of: .expense).map(\.name),
-            expenses: spending.map { (title: $0.displayName, amount: $0.amount) },
-            allowanceLines: allowanceLines,
-            inflationLines: inflationLines
-        )
-    }
-
     // MARK: To do
 
     struct TodoItem: Identifiable {

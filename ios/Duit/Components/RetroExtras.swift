@@ -50,7 +50,7 @@ struct ToastView: View {
         HStack(spacing: 10) {
             Text(message.text)
                 .font(.plex(13.5, .semibold))
-                .foregroundStyle(Theme.terminalText)
+                .foregroundStyle(Theme.toastText)
                 .frame(maxWidth: .infinity, alignment: .leading)
             if message.undo != nil {
                 Button("Undo", action: onUndo)
@@ -176,25 +176,6 @@ struct RetroChipStyle: ButtonStyle {
             .overlay { BevelOverlay(topLeft: pressed ? Theme.lo : Theme.hi, bottomRight: pressed ? Theme.hi : Theme.lo) }
             .clipShape(shape)
             .overlay(shape.strokeBorder(Theme.line, lineWidth: 1))
-    }
-}
-
-/// A read-only chip (`.pchip`): what the Terminal will log.
-struct RetroPill: View {
-    var text: String
-    var dot: Color?
-
-    var body: some View {
-        HStack(spacing: 6) {
-            if let dot { ColorDot(color: dot) }
-            Text(text)
-                .font(.plex(12, .semibold))
-                .foregroundStyle(Theme.ink)
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(Theme.face)
-        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
     }
 }
 

@@ -85,6 +85,11 @@ jobs:
         run: |
           unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/(Duit|Info.plist)$"
           plutil -p Payload/Duit.app/Info.plist | grep -E "CFBundleIdentifier|CFBundleShortVersionString|MinimumOSVersion|DTPlatformName|UIDeviceFamily"
+          # The widget extension is embedded, the icon is compiled in, and the duit:// scheme is registered.
+          unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/PlugIns/DuitWidget.appex/DuitWidget$"
+          unzip -l Duit-unsigned.ipa | grep -E "Payload/Duit.app/Assets.car$"
+          plutil -p Payload/Duit.app/Info.plist | grep -E "CFBundleURLSchemes" -A2
+          plutil -p Payload/Duit.app/PlugIns/DuitWidget.appex/Info.plist | grep -E "NSExtensionPointIdentifier|CFBundleIdentifier"
       - uses: actions/upload-artifact@v4
         with:
           name: Duit-unsigned-ipa
@@ -126,7 +131,7 @@ jobs:
 
           Requires iOS 17 or later.
 
-          **Status:** it compiles and the unit tests pass in CI ([run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})). The add transaction, quit, reopen flow has not been verified by hand yet. The bundle ID \`com.samidun26.duit\` is a placeholder.
+          **Status:** it compiles and the unit tests pass in CI ([run ${GITHUB_RUN_ID}](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})). Screens have not been checked on a real device yet, so expect rough edges in layout and motion. The bundle ID \`com.samidun26.duit\` is a placeholder.
 
           Built from commit ${GITHUB_SHA}.
           EOF

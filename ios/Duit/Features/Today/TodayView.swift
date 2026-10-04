@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// The home screen, after the prototype's "Today": the Tanggal Tua battery,
-/// the Duit Terminal, a single To do list, and Recent.
+/// a single To do list, and Recent.
 struct TodayView: View {
     let ledger: Ledger
     var onEdit: (UUID) -> Void
@@ -15,7 +15,6 @@ struct TodayView: View {
         ScrollView {
             VStack(spacing: 18) {
                 TanggalTuaWindow(ledger: ledger, onGoSettings: onGoSettings, onPayday: onPayday)
-                TerminalWindow(ledger: ledger)
                 TodoWindow(ledger: ledger, onCheckBalance: onCheckBalance)
                 RecentWindow(ledger: ledger, onEdit: onEdit, onSeeAll: onGoActivity)
             }
@@ -106,215 +105,6 @@ private struct TanggalTuaWindow: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
-    }
-}
-
-// MARK: - Duit Terminal
-
-private struct TerminalWindow: View {
-    let ledger: Ledger
-
-    @Environment(\.modelContext) private var context
-    @Environment(Toaster.self) private var toaster
-    @State private var command = ""
-    @State private var lines = TermLine.hint
-    @State private var stamped = false
-
-    struct TermLine: Identifiable {
-        enum Kind { case dim, input, ok, error }
-        let id = UUID()
-        let kind: Kind
-        let text: String
-
-        static let hint = [
-            TermLine(kind: .dim, text: "Type what you spent, like mie ayam 22rb."),
-            TermLine(kind: .dim, text: "Ask sisa? or grab vs gojek. Type help for more."),
-        ]
-    }
-
-    private let examples = ["mie ayam 22rb", "es teh goceng", "sisa?", "grab vs gojek"]
-
-    private var trimmed: String { command.trimmingCharacters(in: .whitespaces) }
-    private var asking: Bool { !trimmed.isEmpty && TerminalEngine.isQuestion(trimmed) }
-
-    var body: some View {
-        let parsed: ParsedEntry? = (trimmed.isEmpty || asking) ? nil : SlangParser.parse(trimmed, context: ledger.parseContext())
-        RetroWindow(title: "Duit Terminal", tint: Theme.titleColors[4], icon: PixelIconData.term) {
-            VStack(alignment: .leading, spacing: 10) {
-                terminal
-                if let parsed { preview(parsed) }
-                if trimmed.isEmpty { exampleChips }
-            }
-            .padding(14)
-        }
-        .overlay(alignment: .topTrailing) {
-            if stamped {
-                StampView(text: "Logged", ink: Color(hex: 0x5FE39A), tilt: -4)
-                    .padding(.top, 46)
-                    .padding(.trailing, 18)
-            }
-        }
-    }
-
-    private var terminal: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            ForEach(lines) { line in
-                Text(line.text)
-                    .font(.plex(12.5))
-                    .foregroundStyle(color(for: line.kind))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            HStack(spacing: 8) {
-                Text("duit>")
-                    .font(.plex(14, .bold))
-                    .foregroundStyle(Theme.terminalYellow)
-                TextField(
-                    "Type an expense or a question",
-                    text: $command,
-                    prompt: Text("e.g. bakso 15rb").foregroundStyle(Color(hex: 0x7E81B0))
-                )
-                .font(.plex(16))
-                .foregroundStyle(Theme.terminalText)
-                .tint(Theme.terminalYellow)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.send)
-                .onSubmit(run)
-                .onChange(of: command) {
-                    if command.count > 80 { command = String(command.prefix(80)) }
-                }
-                .frame(minHeight: 44)
-                if !trimmed.isEmpty {
-                    Button(asking ? "Ask" : "Log", action: run)
-                        .buttonStyle(.plain)
-                        .font(.pixel(14))
-                        .foregroundStyle(Theme.terminalBackground)
-                        .padding(.horizontal, 12)
-                        .frame(minHeight: 36)
-                        .background(Theme.terminalYellow)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 10)
-        .padding(.bottom, 2)
-        .background(Theme.terminalBackground)
-        .overlay { BevelOverlay(topLeft: .black.opacity(0.45), bottomRight: .clear, width: 2) }
-        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
-    }
-
-    private func color(for kind: TermLine.Kind) -> Color {
-        switch kind {
-        case .dim: Theme.terminalDim
-        case .input: Theme.terminalPink
-        case .ok: Theme.terminalGreen
-        case .error: Theme.terminalError
-        }
-    }
-
-    // MARK: Preview
-
-    @ViewBuilder
-    private func preview(_ p: ParsedEntry) -> some View {
-        if p.ok {
-            FlowLayout(spacing: 6) {
-                RetroPill(text: p.type == .income ? "Income: \(p.title)" : p.title)
-                RetroPill(text: CurrencyFormatter.formatRp(p.amount))
-                if p.type == .transfer {
-                    RetroPill(
-                        text: "\(ledger.account(p.fromAccountID)?.name ?? "?") > \(ledger.account(p.toAccountID)?.name ?? "?")",
-                        dot: EntryRow.transferColor
-                    )
-                } else {
-                    RetroPill(
-                        text: ledger.category(named: p.categoryName, kind: p.type)?.name ?? p.categoryName ?? "Other",
-                        dot: (ledger.category(named: p.categoryName, kind: p.type)?.color ?? .gray).color
-                    )
-                    RetroPill(text: ledger.account(p.accountID)?.name ?? "No wallet")
-                }
-                RetroPill(text: DateHelpers.formatDayLabel(DateHelpers.addDays(ledger.today, p.dayOffset), today: ledger.today))
-            }
-            ForEach(Array(notes(for: p).enumerated()), id: \.offset) { _, note in
-                Text(note)
-                    .font(.plex(11.5))
-                    .foregroundStyle(Theme.ink2)
-            }
-        } else {
-            Text("Add an amount: 18rb, 25.000, goceng, ceban or dua puluh ribu.")
-                .font(.plex(11.5))
-                .foregroundStyle(Theme.ink2)
-        }
-    }
-
-    private func notes(for p: ParsedEntry) -> [String] {
-        var out = p.notes
-        if let b = ledger.battery, b.isPowerSaving, p.type == .expense {
-            let share = Int((Double(p.amount) / Double(max(1, b.allowance)) * 100).rounded())
-            out.append("That is \(share)% of today’s \(CurrencyFormatter.formatRpCompact(b.allowance)).")
-        }
-        return out
-    }
-
-    private var exampleChips: some View {
-        FlowLayout(spacing: 6) {
-            ForEach(examples, id: \.self) { example in
-                Button(example) { command = example }
-                    .buttonStyle(RetroChipStyle())
-            }
-        }
-        .accessibilityElement(children: .contain)
-    }
-
-    // MARK: Run
-
-    private func run() {
-        let text = trimmed
-        guard !text.isEmpty else { return }
-        var out = [TermLine(kind: .input, text: "duit> \(text)")]
-
-        if TerminalEngine.isQuestion(text) {
-            for line in TerminalEngine.answer(text, context: ledger.terminalContext()) {
-                out.append(TermLine(kind: .ok, text: line))
-            }
-            lines = out
-            command = ""
-            return
-        }
-
-        let parsed = SlangParser.parse(text, context: ledger.parseContext())
-        guard parsed.ok else {
-            out.append(TermLine(kind: .error, text: parsed.type == .transfer && parsed.amount > 0
-                ? "Top up needs two wallets, like a bank and an e-wallet."
-                : "No amount found. Try 18rb, 25.000, goceng or dua puluh ribu."))
-            lines = out
-            return
-        }
-        guard let tx = EntryWriter.insert(parsed, into: context, ledger: ledger) else { return }
-
-        let place: String
-        if parsed.type == .transfer {
-            place = "\(ledger.account(parsed.fromAccountID)?.name ?? "?") > \(ledger.account(parsed.toAccountID)?.name ?? "?")"
-        } else {
-            let category = ledger.category(named: parsed.categoryName, kind: parsed.type)?.name ?? parsed.categoryName ?? "Other"
-            place = "\(category) · \(ledger.account(parsed.accountID)?.name ?? "No wallet")"
-        }
-        let day = DateHelpers.formatDayLabel(DateHelpers.addDays(ledger.today, parsed.dayOffset), today: ledger.today)
-        out.append(TermLine(kind: .ok, text: "OK  \(parsed.title) · \(CurrencyFormatter.formatRp(parsed.amount)) · \(place) · \(day)"))
-        lines = out
-        command = ""
-
-        let id = tx.id
-        let ctx = context
-        toaster.show("Logged \(parsed.title) · \(CurrencyFormatter.formatRp(parsed.amount))") {
-            EntryWriter.delete(id: id, in: ctx)
-        }
-        stamped = true
-        Task {
-            try? await Task.sleep(for: .milliseconds(950))
-            stamped = false
-        }
     }
 }
 
@@ -474,7 +264,7 @@ private struct RecentWindow: View {
             VStack(spacing: 0) {
                 let recent = Array(ledger.entries.prefix(5))
                 if recent.isEmpty {
-                    Text("Nothing logged yet. Type “mie ayam 22rb” in the Terminal, or tap Add.")
+                    Text("Nothing logged yet. Tap Add to log your first expense.")
                         .font(.plex(13))
                         .foregroundStyle(Theme.ink2)
                         .multilineTextAlignment(.center)

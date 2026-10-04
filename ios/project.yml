@@ -14,14 +14,31 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.0" # the source is unverified; don't opt into Swift 6 strict concurrency yet
-    MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
+    MARKETING_VERSION: "0.2.0"
+    CURRENT_PROJECT_VERSION: "2"
 
 targets:
   Duit:
     type: application
     platform: iOS
-    sources: [Duit]
+    sources: [Duit, Shared]
+    dependencies:
+      - target: DuitWidget
+    # The App Group lets the app hand the widgets a small snapshot; the
+    # generated files live in Config/ (gitignored, rebuilt by xcodegen).
+    entitlements:
+      path: Config/Duit.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.samidun26.duit]
+    # CFBundleURLTypes registers duit:// so widget taps can open the app.
+    info:
+      path: Config/Duit-Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.samidun26.duit
+            CFBundleURLSchemes: [duit]
     settings:
       base:
         # PLACEHOLDER bundle ID — fine for CI and sideloading, but must be
@@ -29,6 +46,7 @@ targets:
         # TestFlight phase (it can't be changed once registered).
         PRODUCT_BUNDLE_IDENTIFIER: com.samidun26.duit
         GENERATE_INFOPLIST_FILE: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         INFOPLIST_KEY_CFBundleDisplayName: Duit
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
@@ -36,6 +54,39 @@ targets:
         INFOPLIST_KEY_NSFaceIDUsageDescription: "Duit uses Face ID to keep your money private when the lock is on."
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+
+  # Home Screen and Lock Screen widgets. It compiles only the handful of app
+  # files it needs (fonts, palette names, currency formatting) plus Shared/,
+  # and never touches the SwiftData store.
+  DuitWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - DuitWidget
+      - Shared
+      - Duit/Resources/DuitFonts.swift
+      - Duit/Resources/DuitTheme.swift
+      - Duit/Services/Prefs.swift
+      - Duit/Services/CurrencyFormatter.swift
+      - Duit/Resources/Fonts
+    entitlements:
+      path: Config/DuitWidget.entitlements
+      properties:
+        com.apple.security.application-groups: [group.com.samidun26.duit]
+    info:
+      path: Config/DuitWidget-Info.plist
+      properties:
+        CFBundleDisplayName: Duit
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.samidun26.duit.widget
+        GENERATE_INFOPLIST_FILE: YES
+        SKIP_INSTALL: YES
+        INFOPLIST_KEY_CFBundleDisplayName: Duit
 
   DuitTests:
     type: bundle.unit-test
