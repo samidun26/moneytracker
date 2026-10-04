@@ -68,23 +68,27 @@ extension View {
 /// - `accent`: accent fill, no ring (the taskbar's Add)
 /// - `key`: keypad digit — LCD font, thicker bottom edge, drops 2pt when pressed
 /// - `danger`: plain, with a red label
+/// - `good` / `bad`: green "Worth it" / pink "Nyesel"
 struct RetroButtonStyle: ButtonStyle {
-    enum Kind { case plain, primary, accent, key, danger }
+    enum Kind { case plain, primary, accent, key, danger, good, bad }
     var kind: Kind = .plain
+    /// The prototype's `.btn-sm`: a little narrower and smaller type.
+    var small = false
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed
         let radius: CGFloat = kind == .primary ? 7 : (kind == .accent ? 4 : 5)
         let shape = RoundedRectangle(cornerRadius: radius)
         let filled = kind == .primary || kind == .accent
+        let tinted: Color? = kind == .good ? Theme.good : (kind == .bad ? Theme.bad : nil)
 
         let button = configuration.label
-            .font(kind == .key ? .lcd(30) : .pixel(16))
+            .font(kind == .key ? .lcd(30) : .pixel(small ? 14 : 16))
             .foregroundStyle(foreground)
             .frame(minHeight: 44)
             .frame(maxWidth: kind == .key ? CGFloat.infinity : nil)
-            .padding(.horizontal, kind == .key ? 0 : 16)
-            .background(filled ? Theme.accent : (pressed ? Theme.face2 : Theme.face))
+            .padding(.horizontal, kind == .key ? 0 : (small ? 12 : 16))
+            .background(filled ? Theme.accent : (tinted ?? (pressed ? Theme.face2 : Theme.face)))
             .overlay {
                 if filled {
                     BevelOverlay(
@@ -124,6 +128,7 @@ struct RetroButtonStyle: ButtonStyle {
         switch kind {
         case .primary, .accent: Theme.accentInk
         case .danger: Theme.negative
+        case .good, .bad: Theme.titleInk
         default: Theme.ink
         }
     }

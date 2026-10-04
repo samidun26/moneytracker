@@ -12,6 +12,8 @@ struct Entry: Identifiable, Hashable {
     var title: String
     var categoryID: UUID?
     var categoryName: String?
+    var categoryIcon: String?
+    var categoryColor: CategoryColor?
     var accountID: UUID?
     var accountName: String?
     var toAccountID: UUID?
@@ -28,6 +30,8 @@ struct Entry: Identifiable, Hashable {
         title: String = "",
         categoryID: UUID? = nil,
         categoryName: String? = nil,
+        categoryIcon: String? = nil,
+        categoryColor: CategoryColor? = nil,
         accountID: UUID? = nil,
         accountName: String? = nil,
         toAccountID: UUID? = nil,
@@ -43,6 +47,8 @@ struct Entry: Identifiable, Hashable {
         self.title = title
         self.categoryID = categoryID
         self.categoryName = categoryName
+        self.categoryIcon = categoryIcon
+        self.categoryColor = categoryColor
         self.accountID = accountID
         self.accountName = accountName
         self.toAccountID = toAccountID
@@ -61,6 +67,8 @@ struct Entry: Identifiable, Hashable {
             title: t.note.trimmingCharacters(in: .whitespaces),
             categoryID: t.category?.id,
             categoryName: t.category?.name,
+            categoryIcon: t.category?.icon,
+            categoryColor: t.category?.color,
             accountID: t.account?.id,
             accountName: t.account?.name,
             toAccountID: t.toAccount?.id,

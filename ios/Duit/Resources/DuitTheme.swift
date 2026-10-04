@@ -88,6 +88,14 @@ enum Theme {
     static let greenInk = Color(day: 0x1F8F4E, night: 0x5BE39A)
     static let amberInk = Color(day: 0xC97A00, night: 0xFFC857)
 
+    // MARK: Taskbar icon colors (the prototype's --ti1...--ti4)
+    static let tabInks: [Color] = [
+        Color(day: 0xC2255C, night: 0xFF8FB8),
+        Color(day: 0x3553E8, night: 0x8FA0FF),
+        Color(day: 0xB86E00, night: 0xFFD45C),
+        Color(day: 0x7445D9, night: 0xC9A8FF),
+    ]
+
     // MARK: Good / bad buttons and status chips
     static let good = Color(hex: 0x5FD08A)
     static let bad = Color(hex: 0xFF8FB8)

@@ -1,10 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// App entry point. Root is Transaction History for now (see its header
-/// comment) — swap for the real Dashboard once this vertical slice
-/// (Add Transaction → SwiftData → Transaction History → survives restart)
-/// is confirmed stable; see docs/IOS_NATIVE_PLAN.md §8.
+/// App entry point: opens straight into the retro desk (AppShell) — no login.
 @main
 struct DuitApp: App {
     let container: ModelContainer
@@ -22,8 +19,7 @@ struct DuitApp: App {
 
     var body: some Scene {
         WindowGroup {
-            TransactionHistoryView()
-                .tint(Theme.accent)
+            AppShell()
         }
         .modelContainer(container)
     }

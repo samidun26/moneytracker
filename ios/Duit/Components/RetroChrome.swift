@@ -39,10 +39,12 @@ struct RetroTitleBar<Trailing: View>: View {
     var title: String
     var tint: Color
     var ink: Color = Theme.titleInk
+    var icon: PixelRects?
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
         HStack(spacing: 8) {
+            if let icon { PixelIcon(rects: icon, unit: 1) }
             Text(title)
                 .font(.pixel(16))
                 .lineLimit(1)
@@ -63,8 +65,8 @@ struct RetroTitleBar<Trailing: View>: View {
 }
 
 extension RetroTitleBar where Trailing == EmptyView {
-    init(title: String, tint: Color, ink: Color = Theme.titleInk) {
-        self.init(title: title, tint: tint, ink: ink, trailing: { EmptyView() })
+    init(title: String, tint: Color, ink: Color = Theme.titleInk, icon: PixelRects? = nil) {
+        self.init(title: title, tint: tint, ink: ink, icon: icon, trailing: { EmptyView() })
     }
 }
 
@@ -73,12 +75,13 @@ struct RetroWindow<Content: View, Trailing: View>: View {
     var title: String
     var tint: Color
     var ink: Color = Theme.titleInk
+    var icon: PixelRects?
     @ViewBuilder var trailing: () -> Trailing
     @ViewBuilder var content: () -> Content
 
     var body: some View {
         VStack(spacing: 0) {
-            RetroTitleBar(title: title, tint: tint, ink: ink, trailing: trailing)
+            RetroTitleBar(title: title, tint: tint, ink: ink, icon: icon, trailing: trailing)
             content()
         }
         .background(Theme.paper)
@@ -88,8 +91,8 @@ struct RetroWindow<Content: View, Trailing: View>: View {
 }
 
 extension RetroWindow where Trailing == EmptyView {
-    init(title: String, tint: Color, ink: Color = Theme.titleInk, @ViewBuilder content: @escaping () -> Content) {
-        self.init(title: title, tint: tint, ink: ink, trailing: { EmptyView() }, content: content)
+    init(title: String, tint: Color, ink: Color = Theme.titleInk, icon: PixelRects? = nil, @ViewBuilder content: @escaping () -> Content) {
+        self.init(title: title, tint: tint, ink: ink, icon: icon, trailing: { EmptyView() }, content: content)
     }
 }
 
@@ -108,29 +111,7 @@ struct CountBadge: View {
     }
 }
 
-// MARK: - App bar and taskbar
-
-/// Logo + screen title, with the five-color palette stripe underneath.
-struct RetroAppBar: View {
-    var title: String
-
-    var body: some View {
-        HStack(spacing: 10) {
-            DuitLogo()
-            Text(title)
-                .font(.pixel(18))
-                .foregroundStyle(Theme.ink)
-                .accessibilityAddTraits(.isHeader)
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.bottom, 6) // room for the stripe
-        .frame(minHeight: 54)
-        .frame(maxWidth: .infinity)
-        .background(Theme.menuBar.ignoresSafeArea(edges: .top))
-        .overlay(alignment: .bottom) { PaletteStripe() }
-    }
-}
+// MARK: - Palette stripe
 
 struct PaletteStripe: View {
     var body: some View {
@@ -143,28 +124,5 @@ struct PaletteStripe: View {
         .overlay(alignment: .top) { Theme.line.frame(height: 1) }
         .overlay(alignment: .bottom) { Theme.line.frame(height: 1) }
         .accessibilityHidden(true)
-    }
-}
-
-/// The bottom bar. Only "Add" exists for now; the prototype's other four
-/// tabs (Today, Activity, Insights, Settings) arrive with their screens.
-struct RetroTaskbar: View {
-    var onAdd: () -> Void
-
-    var body: some View {
-        Button(action: onAdd) {
-            HStack(spacing: 4) {
-                PixelIcon(rects: PixelIconData.plus, unit: 1)
-                Text("Add")
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(RetroButtonStyle(kind: .accent))
-        .accessibilityLabel("Add transaction")
-        .padding(.horizontal, 8)
-        .padding(.top, 7)
-        .padding(.bottom, 9)
-        .background(Theme.face.ignoresSafeArea(edges: .bottom))
-        .overlay(alignment: .top) { Theme.line.frame(height: 1) }
     }
 }

@@ -68,25 +68,38 @@ enum CategoryPixelIcon {
     }()
 }
 
-/// A category tile: a pixel icon (or emoji fallback) on a bright square with
-/// a 1px outline and a light bevel — the prototype's `.tile`.
+/// A square tile with a pixel icon: bright color, 1px outline, light bevel
+/// (the prototype's `.tile`). Used for categories, wallets and buckets.
+struct PixelTile: View {
+    var rects: PixelRects?
+    /// Shown instead of `rects` when there is no pixel icon (an unmapped emoji).
+    var fallback: String = ""
+    var color: Color
+    var size: CGFloat = 40
+
+    var body: some View {
+        ZStack {
+            if let rects {
+                PixelIcon(rects: rects, unit: 2).foregroundStyle(Theme.tileInk)
+            } else {
+                Text(fallback).font(.system(size: size * 0.5))
+            }
+        }
+        .frame(width: size, height: size)
+        .background(color)
+        .overlay { BevelOverlay(topLeft: .white.opacity(0.5), bottomRight: .black.opacity(0.14)) }
+        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+        .accessibilityHidden(true)
+    }
+}
+
+/// A category tile: the category's pixel icon (or its emoji) on its color.
 struct IconBadge: View {
     var icon: String
     var color: CategoryColor
     var size: CGFloat = 40
 
     var body: some View {
-        ZStack {
-            if let rects = CategoryPixelIcon.rects(for: icon) {
-                PixelIcon(rects: rects, unit: 2).foregroundStyle(Theme.tileInk)
-            } else {
-                Text(icon).font(.system(size: size * 0.5))
-            }
-        }
-        .frame(width: size, height: size)
-        .background(color.color)
-        .overlay { BevelOverlay(topLeft: .white.opacity(0.5), bottomRight: .black.opacity(0.14)) }
-        .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
-        .accessibilityHidden(true)
+        PixelTile(rects: CategoryPixelIcon.rects(for: icon), fallback: icon, color: color.color, size: size)
     }
 }
