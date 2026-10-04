@@ -1,8 +1,9 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 /// Settings, after the prototype's last tab: Look, Payday, Security and
-/// Sync & data — plus the places where the real app needs to be set up,
+/// Sync & data — plus Profiles, and the places where the real app needs to be set up,
 /// which the prototype's sample data didn't (spending money, salary,
 /// wallets, category budgets, bills and the payday split buckets).
 struct SettingsView: View {
@@ -13,21 +14,25 @@ struct SettingsView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(Toaster.self) private var toaster
+    @Environment(ProfileStores.self) private var stores
     @AppStorage(Prefs.theme) private var theme = "auto"
     @AppStorage(Prefs.palette) private var palette = "candy"
     @AppStorage(Prefs.texture) private var texture = true
-    @AppStorage(Prefs.paydayDay) private var paydayDay = Prefs.defaultPaydayDay
-    @AppStorage(Prefs.salary) private var salary = 0
+    // Payday and salary belong to the open profile.
+    @AppStorage(Prefs.paydayDay, store: Prefs.profile) private var paydayDay = Prefs.defaultPaydayDay
+    @AppStorage(Prefs.salary, store: Prefs.profile) private var salary = 0
     @AppStorage(Prefs.faceLock) private var faceLock = false
     @Query private var buckets: [SplitBucket]
 
     enum Panel: String, Identifiable {
-        case spending, salary, wallets, budgets, bills, buckets
+        case profiles, spending, salary, wallets, budgets, bills, buckets
         var id: String { rawValue }
     }
 
     @State private var panel: Panel?
     @State private var lockMethod = AppLock.methodName
+    @State private var showingImporter = false
+    @State private var pendingImport: PendingImport?
 
     private struct ThemeOption: Identifiable {
         let id: String
@@ -46,6 +51,7 @@ struct SettingsView: View {
         ScrollView {
             RetroWindow(title: "Settings", tint: Theme.titleColors[4], icon: PixelIconData.panel) {
                 VStack(spacing: 8) {
+                    profilesGroup
                     lookGroup
                     paydayGroup
                     moneyGroup
@@ -80,6 +86,7 @@ struct SettingsView: View {
                     note: "Used by the Payday Split and for “work hours” in Insights. Set it to 0 if you'd rather not say.",
                     initial: salary
                 ) { salary = $0 }
+            case .profiles: ProfileSwitcherView()
             case .wallets: WalletsSettingsView(ledger: ledger)
             case .budgets: BudgetsSettingsView(ledger: ledger)
             case .bills: BillsSettingsView(ledger: ledger)
@@ -90,6 +97,19 @@ struct SettingsView: View {
 
     private static var version: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+
+    // MARK: Profiles
+
+    private var profilesGroup: some View {
+        RetroGroup(title: "Profiles") {
+            RetroValueRow(
+                label: "Open profile",
+                value: stores.active.name,
+                accessibilityHint: "Switch or manage profiles"
+            ) { panel = .profiles }
+            note("Each profile keeps its own wallets, transactions, budgets, bills, salary and payday, and nothing in one shows up in another. Look and lock settings are shared.")
+        }
     }
 
     // MARK: Look
@@ -220,19 +240,19 @@ struct SettingsView: View {
 
     private var dataGroup: some View {
         RetroGroup(title: "Sync & data") {
-            note("Not connected. Everything stays on this iPhone.")
+            note("Not connected. Everything stays on this iPhone. Export CSV makes a backup of \"\(stores.active.name)\" you can bring back with Import CSV, which also reads a bank or e-wallet statement. Both work on the open profile.")
             FlowLayout(spacing: 12) {
                 Button("Connect…") {
                     onAlert(RetroAlertContent(
                         title: "iCloud sync is coming",
-                        message: "Duit keeps everything on this iPhone for now. Export CSV makes a copy you can keep or open in a spreadsheet.",
+                        message: "Duit keeps everything on this iPhone for now. Export CSV makes a copy you can keep or open in a spreadsheet, and Import CSV brings it back.",
                         icon: PixelIconData.cloud
                     ))
                 }
                 .buttonStyle(RetroButtonStyle(small: true))
 
                 ShareLink(
-                    item: CSVFile(entries: ledger.entries, day: ledger.today),
+                    item: CSVFile(entries: ledger.entries, day: ledger.today, profile: stores.active),
                     preview: SharePreview("Duit transactions (CSV)")
                 ) {
                     Text("Export CSV…")
@@ -240,19 +260,63 @@ struct SettingsView: View {
                 .buttonStyle(RetroButtonStyle(small: true))
                 .disabled(ledger.entries.isEmpty)
 
+                Button("Import CSV…") { showingImporter = true }
+                    .buttonStyle(RetroButtonStyle(small: true))
+
                 Button("Reset all data…", action: askReset)
                     .buttonStyle(RetroButtonStyle(kind: .danger, small: true))
             }
             .padding(.top, 10)
         }
+        .fileImporter(
+            isPresented: $showingImporter,
+            allowedContentTypes: [.commaSeparatedText, .tabSeparatedText, .plainText]
+        ) { handleImport($0) }
+        .sheet(item: $pendingImport) { pending in
+            ImportCSVView(ledger: ledger, pending: pending)
+        }
+    }
+
+    /// Reads the picked file and, if it makes sense, opens the preview. Nothing
+    /// is added until the user taps Add there.
+    private func handleImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            if (error as? CocoaError)?.code == .userCancelled { return }
+            importAlert("Couldn't open that file", error.localizedDescription)
+        case .success(let url):
+            let scoped = url.startAccessingSecurityScopedResource()
+            defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+            do {
+                let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                guard size <= CSVImport.maxBytes else {
+                    importAlert("That file is too big", "Duit reads CSV files up to 5 MB. A bank statement for one account is much smaller; check that you picked the right file.")
+                    return
+                }
+                let data = try Data(contentsOf: url)
+                switch CSVImport.read(CSVParser.text(from: data)) {
+                case .success(let file):
+                    pendingImport = PendingImport(fileName: url.lastPathComponent, file: file)
+                case .failure(let failure):
+                    importAlert("Can't import that file", failure.message)
+                }
+            } catch {
+                importAlert("Couldn't open that file", error.localizedDescription)
+            }
+        }
+    }
+
+    private func importAlert(_ title: String, _ message: String) {
+        onAlert(RetroAlertContent(title: title, message: message, icon: PixelIconData.caution))
     }
 
     private func askReset() {
         let ctx = context
         let toaster = toaster
+        let profileName = stores.active.name
         onAlert(RetroAlertContent(
             title: "Reset all data?",
-            message: "This erases every transaction, wallet, budget and bill on this iPhone and puts the starting wallets and categories back. It can't be undone. Export a CSV first if you want a copy.",
+            message: "This erases every transaction, wallet, budget and bill in \"\(profileName)\" and puts the starting wallets and categories back. Your other profiles aren't touched. It can't be undone. Export a CSV first if you want a copy.",
             icon: PixelIconData.caution,
             confirmLabel: "Erase everything",
             action: {

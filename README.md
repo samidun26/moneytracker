@@ -23,7 +23,7 @@ Native SwiftUI, local-first, no account.
   <img src="docs/screenshots/retro-today-arcade.png" width="190" alt="Today with the Arcade palette" />
   <img src="docs/screenshots/retro-settings.png" width="190" alt="Settings: look, payday and security" />
 </p>
-<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design, except that it has no Duit Terminal window, which is removed in these images. The logo in the app bar of these images is the older pixel "D"; the app and the live prototype now show the credit cards from the app icon.</sub></p>
+<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design, except that it has no Duit Terminal window, which is left out of these images. Re-render them with <code>node design/render-readme-screenshots.cjs</code>.</sub></p>
 
 ## What it is
 
@@ -37,6 +37,7 @@ The **native iOS app in [`ios/`](ios)** is the product. The original React web a
 |---|---|
 | **Today** | The *Tanggal Tua* battery shows how much you can still spend per day until payday, and goes into "power saving" when you're running low. **To do** lists bills to mark Paid or Skip, purchases to rate **Worth it** or **Nyesel** (regret), and wallets due for a balance check, each answered with a rubber stamp. **Recent** shows your latest transactions. |
 | **Fast entry** | Expense, Income and Transfer. A green LCD amount, a keypad with a `000` key, one tap per category, recent-title suggestions, and an Undo toast after saving. |
+| **Profiles** | Keep **Mine** and **Us** (up to six profiles) apart on one iPhone. Each has its own wallets, transactions, budgets, bills, salary and payday, and nothing in one shows up in another. Switch from the chip in the app bar. Your existing data becomes the first profile, "Mine". |
 | **Wallets** | Cash, bank, e-wallet, credit card and savings, each with a live balance. **Balance Check** compares a wallet with your bank or e-wallet app and helps you find the gap. |
 | **Activity** | Transactions grouped by day, with search and All / Money out / Money in filters. Tap a transaction to edit it. |
 | **Insights** | **Month:** spent vs income, budgets with a pace meter, where it went, and six months of trend, shown in rupiah, *mie ayam* or work hours. **Prices:** how the price of what you buy changes. **Habits:** the Habit Time Machine finds what you keep buying, shows what it costs a year, and projects what you'd save by buying it less often. |
@@ -45,7 +46,7 @@ The **native iOS app in [`ios/`](ios)** is the product. The original React web a
 | **Widgets** | **Spending** shows the battery, your daily allowance, and what you spent today and this month (small, medium and Lock Screen sizes). **Quick add** is one big **+** that opens Duit on a new expense (small and Lock Screen). With the lock on, widgets show "Locked" instead of amounts. |
 | **Look** | Automatic, Day or Night, three palettes (Candy, Arcade, Sunset), optional desktop dots. Text and background pairs meet WCAG AA contrast in both modes, and type scales with Dynamic Type. |
 | **Private by design** | Optional Face ID lock with your iPhone passcode as the backup. No account, no analytics, no network requests. |
-| **Your data, portable** | Export every transaction as CSV, or erase everything from Settings. |
+| **Your data, portable** | **Export CSV** saves every transaction, and **Import CSV** brings that file back after an update, a reinstall or on a new iPhone, without duplicates. Import also reads a **bank or e-wallet statement** (Debit/Credit columns, a signed amount, or an amount with a DB/CR mark; English or Indonesian headers; `,` or `;` files), shows a preview first, and has an Undo. Or erase everything from Settings. |
 
 Setup lives in **Settings**: spending money, monthly salary, wallets, category budgets, bills and Payday Split buckets.
 
@@ -55,7 +56,7 @@ The native app covers the retro prototype, plus an app icon and widgets that the
 
 Left out on purpose: the prototype's **Duit Terminal** (typing `mie ayam 22rb`) was removed from the native app.
 
-Not built yet: iCloud sync (the **Connect…** button says so), JSON backup and restore, editing categories (the 22 defaults are fixed), notifications, and first-run onboarding. The roadmap, decisions and known gaps are in [`docs/IOS_NATIVE_PLAN.md`](docs/IOS_NATIVE_PLAN.md).
+Not built yet: iCloud sync and live sharing with a partner's own iPhone (the **Connect…** button says so), a full backup of wallets' starting balances, budgets and bills (the CSV holds transactions only), editing categories (the 22 defaults are fixed), notifications, and first-run onboarding. The roadmap, decisions and known gaps are in [`docs/IOS_NATIVE_PLAN.md`](docs/IOS_NATIVE_PLAN.md).
 
 ## Install on your iPhone
 

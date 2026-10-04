@@ -37,12 +37,15 @@ enum AppTab: String, CaseIterable, Identifiable {
 
 // MARK: - App bar
 
-/// Logo, screen title and a tiny battery readout, over the palette stripe
-/// (the prototype's `.appbar`). Tapping the battery goes back to Today.
+/// Logo, screen title, the profile chip and a tiny battery readout, over the
+/// palette stripe (the prototype's `.appbar`). Tapping the battery goes back to Today.
 struct RetroAppBar: View {
     var title: String
     var battery: Battery?
+    /// The open profile; tapping its chip opens the profile switcher.
+    var profile: Profile?
     var onBattery: () -> Void = {}
+    var onProfile: () -> Void = {}
 
     var body: some View {
         HStack(spacing: 10) {
@@ -50,8 +53,13 @@ struct RetroAppBar: View {
             Text(title)
                 .font(.pixel(18))
                 .foregroundStyle(Theme.ink)
+                .lineLimit(1)
+                .layoutPriority(1)
                 .accessibilityAddTraits(.isHeader)
-            Spacer()
+            if let profile {
+                ProfilePill(profile: profile, action: onProfile)
+            }
+            Spacer(minLength: 0)
             if let battery {
                 Button(action: onBattery) {
                     HStack(spacing: 6) {

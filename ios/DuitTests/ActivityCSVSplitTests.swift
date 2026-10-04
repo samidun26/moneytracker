@@ -62,18 +62,26 @@ final class ActivityCSVSplitTests: XCTestCase {
 
     // MARK: CSV
 
-    func testCSVHasTheWebAppsColumnsNewestFirst() {
+    func testCSVHasTheWebAppsColumnsNewestFirstThenIDAndWorthIt() {
         let list = [
             TestData.expense(50_000, on: day(2026, 9, 1), title: "Lunch", category: "Food & Drinks", accountName: "Cash"),
             TestData.income(1_000_000, on: day(2026, 9, 2), title: "Gaji", category: "Salary", account: nil),
             Entry(type: .transfer, amount: 200_000, date: day(2026, 9, 3), accountName: "Bank", toAccountName: "GoPay"),
         ]
         let lines = CSVExport.csv(list).components(separatedBy: "\n")
-        XCTAssertEqual(lines[0], "Date,Type,Amount,Signed amount,Category,Account,To account,Note")
-        XCTAssertEqual(lines[1], "2026-09-03,transfer,200000,0,,Bank,GoPay,")
-        XCTAssertEqual(lines[2], "2026-09-02,income,1000000,1000000,Salary,,,Gaji")
-        XCTAssertEqual(lines[3], "2026-09-01,expense,50000,-50000,Food & Drinks,Cash,,Lunch")
+        XCTAssertEqual(lines[0], "Date,Type,Amount,Signed amount,Category,Account,To account,Note,ID,Worth it")
+        XCTAssertEqual(lines[1], "2026-09-03,transfer,200000,0,,Bank,GoPay,,\(list[2].id.uuidString),")
+        XCTAssertEqual(lines[2], "2026-09-02,income,1000000,1000000,Salary,,,Gaji,\(list[1].id.uuidString),")
+        XCTAssertEqual(lines[3], "2026-09-01,expense,50000,-50000,Food & Drinks,Cash,,Lunch,\(list[0].id.uuidString),")
         XCTAssertEqual(lines.count, 4)
+    }
+
+    func testCSVKeepsTheWorthItAnswer() {
+        let worth = TestData.expense(850_000, on: day(2026, 9, 2), title: "Keyboard", rating: .worth)
+        let regret = TestData.expense(499_000, on: day(2026, 9, 1), title: "Jacket", rating: .regret)
+        let lines = CSVExport.csv([worth, regret]).components(separatedBy: "\n")
+        XCTAssertTrue(lines[1].hasSuffix(",\(worth.id.uuidString),worth"))
+        XCTAssertTrue(lines[2].hasSuffix(",\(regret.id.uuidString),regret"))
     }
 
     func testCSVQuotesCommasQuotesAndNewlines() {
@@ -84,7 +92,7 @@ final class ActivityCSVSplitTests: XCTestCase {
     }
 
     func testEmptyExportIsJustTheHeader() {
-        XCTAssertEqual(CSVExport.csv([]), "Date,Type,Amount,Signed amount,Category,Account,To account,Note")
+        XCTAssertEqual(CSVExport.csv([]), "Date,Type,Amount,Signed amount,Category,Account,To account,Note,ID,Worth it")
     }
 
     // MARK: Payday split

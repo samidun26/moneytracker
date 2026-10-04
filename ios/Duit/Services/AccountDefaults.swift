@@ -27,10 +27,10 @@ enum AccountDefaults {
     }
 
     static func read(_ key: String) -> UUID? {
-        UserDefaults.standard.string(forKey: key).flatMap(UUID.init(uuidString:))
+        Prefs.profile.string(forKey: key).flatMap(UUID.init(uuidString:))
     }
 
     static func remember(_ id: UUID?, key: String) {
-        UserDefaults.standard.set(id?.uuidString, forKey: key)
+        Prefs.profile.set(id?.uuidString, forKey: key)
     }
 }

@@ -206,7 +206,7 @@ The prototype ran on sample data; the native app reads **your** transactions for
 4. **"Mie ayam" unit** uses your latest "mie ayam" price; if you've never logged one it assumes Rp 20.000 and says so. **"Work hrs"** needs a salary (salary ÷ 173) and otherwise stays in rupiah.
 5. **Lock** engages as soon as the app goes to the background (no grace period) and closes any open sheet so nothing sits above the lock screen.
 6. **Reset all data** erases transactions, wallets, budgets, bills and buckets and restores the starting wallets, categories and buckets. Look settings and the lock stay.
-7. **Deliberately not built:** category add/edit/delete (the 22 defaults are fixed), JSON backup/restore, account detail pages, first-run onboarding, iCloud sync (the "Connect…" button says so), widgets and notifications. All are in the web app or `§3 later`; each is its own decision.
+7. **Deliberately not built:** category add/edit/delete (the 22 defaults are fixed), JSON backup/restore (CSV export/import came later, §9d), account detail pages, first-run onboarding, iCloud sync (the "Connect…" button says so), widgets and notifications. All are in the web app or `§3 later`; each is its own decision.
 
 ### Known gaps and caveats
 
@@ -251,6 +251,58 @@ How it works, and why it's built this way:
 **Needs on your Mac:** `git pull`, `cd ios && xcodegen generate`, then in Xcode pick your **Team for both targets, Duit and DuitWidget** (Signing & Capabilities); the App Groups capability is added from the generated entitlements. Add the widgets from the Home Screen's edit mode (+), or the Lock Screen's Customize.
 **Risk:** I believe a free "Personal Team" can use App Groups, but I couldn't confirm it from here. If Xcode refuses ("…does not support the App Groups capability"), the widgets can't share data on a free account; tell me and I'll make the Quick add widget work without it.
 **Changing the bundle ID later** (Phase 5) means changing the group ID in `project.yml` and `Shared/WidgetSnapshot.swift` too.
+
+## 9d. CSV import and export (2026-10-04)
+
+Requested: "implement CSV import / bank statement, you decide the format, and export so that after an update we can import the app's own export."
+
+**Settings → Sync & data** now has **Export CSV…** and **Import CSV…**. Import opens a preview first (what was understood, how many rows are new / already in Duit / skipped, the first six rows) and only writes when you tap **Add N**. A toast offers **Undo**, which removes exactly the rows that import added.
+
+| File | Where | Notes |
+|---|---|---|
+| Duit's own export | `Services/CSVExport.swift` | `Date, Type, Amount, Signed amount, Category, Account, To account, Note` (the web app's columns) **plus `ID` and `Worth it`**, so the file is read back exactly. Exports from before this change still import (no ID: matched by content). |
+| Reader | `Services/CSVParser.swift`, `CSVImport.swift`, `ImportParsing.swift` | Quotes, line breaks in cells, CRLF, BOM, `, ; tab \|`, UTF-8 / UTF-16 / Windows-1252. |
+| Planner | `Services/ImportPlan.swift` | Pure: wallets, duplicates, categories. |
+| Writer | `Services/ImportWriter.swift` | The only code that writes imported rows, and removes them for Undo. |
+| Preview | `Features/Settings/ImportCSVView.swift` | |
+
+**Bank statements.** The header row is found on its own (within the first 40 rows, so account-name lines above the table are fine) by looking for a date column and money columns, in English or Indonesian (`Tanggal`, `Keterangan`, `Debet`, `Kredit`, `Jumlah`, `Saldo`…). Money is read as either **Debit + Credit columns**, **one Amount column** whose sign, brackets, `DB`/`CR` mark or a **Type column** gives the direction. Numbers read as `1.234.567,89` or `1,234,567.89`; dates as `31/12/2025`, `2025-12-31`, `1 Okt 2025`, with or without a time (day-first unless the file proves month-first). If a file's amounts carry *no* direction at all, Duit assumes positive = money in and shows a **Money in / Money out** switch in the preview.
+
+**Decisions I made, please confirm or override:**
+
+1. **Duplicates.** A Duit export is matched by ID, then by the whole row (day, type, amount, wallet, title). A bank statement is matched by **day + amount + wallet only**, because the bank's wording never equals what you typed ("QRIS KOPI KENANGAN" vs "Kopi"); this stops a statement from doubling what you already logged by hand. Rows are counted, not just checked: two real Rp 20.000 lunches stay two. The cost: a genuinely new bank row with the same day, amount and wallet as a manual entry is skipped as "already in Duit". A bank date that differs by a day from your manual entry is not matched.
+2. **Categories for statements** come from titles you've used before (the same title, or a statement line that contains one of your titles of 4+ letters); everything else is **Other**. There is no built-in merchant keyword list.
+3. **Wallets.** Statement rows go to the wallet you pick in the preview. A Duit export carries wallet names; a name that doesn't exist yet is **created** (starting balance Rp 0, a type guessed from the name: GoPay → e-wallet, Visa → credit card, otherwise bank).
+4. **The CSV holds transactions only.** Wallets' starting balances, budgets, bills, Payday split buckets and settings are not in it, so after a reinstall balances can differ from before until you re-enter starting balances (Settings → Wallets, or Balance Check). A full backup (JSON, as the web app has) is the real fix and is its own decision; it is still not built.
+5. **Limits.** 5 MB per file; `.csv`/`.txt` only (not `.xls`/`.xlsx`/PDF); a date without a year (`01/10`) is skipped and reported; transfers between your own wallets can't be recognised in a bank statement (they import as spending or income).
+
+**Not verified:** this container has no Swift toolchain, so CI is the compiler and the tests' only runner. The statement layouts in `CSVImportTests` are typical shapes written for the tests, **not real bank files**. The first real check is importing your own bank's CSV on your iPhone; tell me which bank and what goes wrong and I'll add that layout to the tests.
+
+## 9e. Profiles: "Mine", "Us" (2026-10-04)
+
+Requested: a separate profile for the user's own money and another for the user and their partner (shared money, expenses…) "that doesn't affect mine". Decisions (yours): **same iPhone** (switch profiles), **fully separate**, **everything per profile**, **no per-profile lock** (the app lock covers all).
+
+**How it works.** Every profile is its **own database file** (`ProfileStores` keeps one `ModelContainer` per profile; the screens only ever get the open profile's). So nothing in one profile can show up in, or change, another by construction, and Today, Activity, Insights, budgets, bills, Payday Split, the battery, CSV import/export and Reset all work exactly as before, scoped to the open profile, with no change to the existing models, `Ledger` or calculations. Your existing data **is** the first profile, "Mine": it keeps using `default.store` and the standard settings, so nothing is moved, copied or migrated.
+
+| Piece | Where |
+|---|---|
+| The list of profiles, rules (unique names, max 6, the open and first can't be deleted), saved as JSON in UserDefaults | `Services/Profiles.swift` (`ProfileRegistry`) |
+| One database per profile, switching, deleting | `Services/ProfileStores.swift`, `Services/Store.swift` (`makeContainer(storeName:)`, `deleteFiles`) |
+| Per-profile settings: payday day, salary, the Payday Split done, the wallet used last | `Prefs.profile` (the open profile's own UserDefaults; the first profile uses `.standard`) |
+| App-bar chip (color + name, always shown), switcher, add / rename / recolor / delete | `Features/Profiles/ProfilesView.swift`, `RetroAppBar`, Settings → Profiles |
+| Switching rebuilds the screens (the same trick as changing palette) and keeps the lock state, so it never asks for Face ID again | `AppShell` |
+
+**Still shared across profiles (device-wide):** look (theme, palette, dots) and the Face ID lock. **Separate per profile:** wallets, transactions, budgets, bills, Payday Split buckets, spending money, salary, payday day.
+
+**Things to know:**
+
+- **Bills post when their profile is open.** Auto-post bills in "Us" are logged (with catch-up for every missed date) the next time you open "Us", not while "Mine" is open.
+- **Widgets show the profile you last used.** Their numbers come from the open profile's snapshot; they don't say which profile (not built).
+- **Export / Import CSV act on the open profile**; a non-first profile's file is named `duit-<profile>-transactions-<date>.csv`, and the import preview says which profile it goes into. This is also the way to move "Us" to your partner's iPhone by hand today; see below.
+- **Delete is permanent** (database files and settings), after a confirmation. The first profile can only be emptied with Reset all data. Reset all data now empties the **open profile only**.
+- The profile list is a small JSON in UserDefaults. If it were ever lost, each profile's database file would still be on the phone but unlisted (there's no "find lost profiles" screen).
+- **Not built:** a combined "All profiles" overview, copying a transaction between profiles, per-profile lock, "paid by me / partner" on shared spending or a settle-up summary, and **live sharing with a partner's own iPhone** (SwiftData can't share a database between two people; that means CloudKit sharing, its own project and listed as "later" in §3).
+- **Not verified on a device:** this container has no Swift toolchain, so CI is the compiler. In particular, opening a second SwiftData store next to the first, and the chip's fit on small iPhones, are untested on real hardware.
 
 ## 9. CI builds and unsigned IPAs (no Mac required for a compile check)
 

@@ -4,12 +4,15 @@ import SwiftData
 /// The app's outermost view: applies the user's look (day / night /
 /// automatic, and the palette) and keeps which tab is open when the palette
 /// changes — a palette change rebuilds the screens (so every color is
-/// re-read) but must not bounce you back to Today.
+/// re-read) but must not bounce you back to Today. Switching profile rebuilds
+/// them the same way, onto the other profile's database and settings; the lock
+/// state is kept, so switching never asks for Face ID again.
 struct AppShell: View {
     @AppStorage(Prefs.theme) private var theme = "auto"
     @AppStorage(Prefs.palette) private var palette = "candy"
     @AppStorage(Prefs.faceLock) private var faceLock = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(ProfileStores.self) private var stores
     @State private var tab: AppTab = .today
     @State private var toaster = Toaster()
     /// Starts locked when the lock is on, so the first screen is the lock.
@@ -34,7 +37,7 @@ struct AppShell: View {
     var body: some View {
         ZStack {
             RootView(tab: $tab, route: covered ? Binding<AppRoute?>.constant(nil) : $route)
-                .id("\(palette)-\(lockEpoch)")
+                .id("\(palette)-\(lockEpoch)-\(stores.active.id)")
             if covered {
                 LockScreen(locked: locked, onUnlock: unlock)
             }
@@ -78,17 +81,20 @@ struct RootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(Toaster.self) private var toaster
+    @Environment(ProfileStores.self) private var stores
 
     @Query private var transactions: [Transaction]
     @Query private var accounts: [Account]
     @Query private var categories: [Category]
     @Query private var budgets: [Budget]
     @Query private var rules: [RecurringRule]
-    @AppStorage(Prefs.paydayDay) private var paydayDay = Prefs.defaultPaydayDay
-    @AppStorage(Prefs.salary) private var salary = 0
+    // Payday and salary belong to the open profile (the screens are rebuilt when it changes).
+    @AppStorage(Prefs.paydayDay, store: Prefs.profile) private var paydayDay = Prefs.defaultPaydayDay
+    @AppStorage(Prefs.salary, store: Prefs.profile) private var salary = 0
     @AppStorage(Prefs.faceLock) private var faceLock = false
     @AppStorage(Prefs.palette) private var palette = "candy"
 
+    @State private var profilesOpen = false
     @State private var composer: ComposerRequest?
     @State private var balanceTarget: BalanceCheckTarget?
     @State private var alert: RetroAlertContent?
@@ -136,10 +142,19 @@ struct RootView: View {
             }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
-            RetroAppBar(title: tab.title, battery: ledger.battery) { tab = .today }
+            RetroAppBar(
+                title: tab.title,
+                battery: ledger.battery,
+                profile: stores.active,
+                onBattery: { tab = .today },
+                onProfile: { profilesOpen = true }
+            )
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             RetroTaskbar(selection: $tab) { composer = .add(.expense) }
+        }
+        .sheet(isPresented: $profilesOpen) {
+            ProfileSwitcherView()
         }
         .sheet(item: $composer) { request in
             AddTransactionView(request: request, ledger: ledger)

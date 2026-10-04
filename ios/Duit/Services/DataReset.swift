@@ -1,7 +1,8 @@
 import Foundation
 import SwiftData
 
-/// "Reset all data": empties the store and puts the first-launch defaults
+/// "Reset all data": empties the open profile's store (other profiles are
+/// separate databases and aren't touched) and puts the first-launch defaults
 /// back. The user's look (theme, palette, dots) and the Face ID setting are
 /// preferences, not data, so they stay.
 enum DataReset {
@@ -21,10 +22,11 @@ enum DataReset {
         DefaultSplitBuckets.seedIfNeeded(context)
         try? context.save()
 
-        let defaults = UserDefaults.standard
-        for key in [Prefs.salary, Prefs.lastSplitPeriod, Prefs.lastExpenseAccount, Prefs.lastIncomeAccount, Store.resetFlagKey] {
-            defaults.removeObject(forKey: key)
+        // The open profile's own settings (payday day stays; it's a preference).
+        for key in [Prefs.salary, Prefs.lastSplitPeriod, Prefs.lastExpenseAccount, Prefs.lastIncomeAccount] {
+            Prefs.profile.removeObject(forKey: key)
         }
+        UserDefaults.standard.removeObject(forKey: Store.resetFlagKey)
     }
 
     private static func deleteAll<T: PersistentModel>(_ type: T.Type, in context: ModelContext) {

@@ -1,9 +1,12 @@
 import Foundation
 
 /// CSV export that opens in Numbers or Excel — a port of
-/// `transactionsToCSV` in src/domain/backup.ts, same columns.
+/// `transactionsToCSV` in src/domain/backup.ts (the same first eight columns),
+/// plus `ID` and `Worth it` so `CSVImport` can read the file back exactly:
+/// the ID lets an import skip what's already there, and "Worth it" keeps your
+/// answers. Older exports without those two columns still import.
 enum CSVExport {
-    static let header = ["Date", "Type", "Amount", "Signed amount", "Category", "Account", "To account", "Note"]
+    static let header = ["Date", "Type", "Amount", "Signed amount", "Category", "Account", "To account", "Note", "ID", "Worth it"]
 
     static func isoDay(_ date: Date) -> String {
         String(format: "%04ld-%02ld-%02ld", DateHelpers.year(of: date), DateHelpers.month(of: date), DateHelpers.day(of: date))
@@ -15,6 +18,12 @@ enum CSVExport {
             return "\"" + value.replacingOccurrences(of: "\"", with: "\"\"") + "\""
         }
         return value
+    }
+
+    private static func worthText(_ rating: WorthRating?) -> String {
+        if rating == .worth { return "worth" }
+        if rating == .regret { return "regret" }
+        return ""
     }
 
     /// Newest first. Signed amount: expenses negative, income positive, transfers 0.
@@ -39,6 +48,8 @@ enum CSVExport {
                 t.accountName ?? "",
                 t.toAccountName ?? "",
                 t.title,
+                t.id.uuidString,
+                worthText(t.rating),
             ]
             lines.append(fields.map(cell).joined(separator: ","))
         }
