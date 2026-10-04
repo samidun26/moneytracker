@@ -1,65 +1,113 @@
 <div align="center">
 
-<img src="public/favicon.svg" width="72" alt="Duit logo" />
+<img src="design/prototype/icon-512.png" width="96" alt="Duit icon: a pixel-art D with a gold coin, inside a retro window" />
 
 # Duit
 
 **Know where every rupiah goes.**
-An offline-first personal money tracker built for iPhone (as a Home Screen app) and the web.
+A personal money tracker for iPhone, dressed up as a tiny retro desktop OS.
+Native SwiftUI, local-first, no account.
 
-**Live:** [moneytracker-ten-phi.vercel.app](https://moneytracker-ten-phi.vercel.app)
-
-**Retro prototype (try on your phone):** [duit-os-prototype.vercel.app](https://duit-os-prototype.vercel.app), source in [`design/prototype`](design/prototype)
+**Try the retro prototype in your browser:** [duit-os-prototype.vercel.app](https://duit-os-prototype.vercel.app), source in [`design/prototype`](design/prototype)
 
 </div>
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" width="200" alt="Overview" />
-  <img src="docs/screenshots/add-expense.png" width="200" alt="Add expense" />
-  <img src="docs/screenshots/insights-charts.png" width="200" alt="Insights" />
-  <img src="docs/screenshots/budgets.png" width="200" alt="Budgets" />
+  <img src="docs/screenshots/retro-today.png" width="190" alt="Today: the Tanggal Tua battery, Duit Terminal and To do windows" />
+  <img src="docs/screenshots/retro-add-expense.png" width="190" alt="New expense: LCD amount, category tiles and keypad" />
+  <img src="docs/screenshots/retro-activity.png" width="190" alt="Activity: wallets and the transaction list" />
+  <img src="docs/screenshots/retro-insights.png" width="190" alt="Insights: budgets with pace meters" />
 </p>
+<p align="center">
+  <img src="docs/screenshots/retro-today-night.png" width="190" alt="Today in night mode" />
+  <img src="docs/screenshots/retro-today-arcade.png" width="190" alt="Today with the Arcade palette" />
+  <img src="docs/screenshots/retro-settings.png" width="190" alt="Settings: look, payday and security" />
+</p>
+<p align="center"><sub>Rendered from the Duit OS prototype with the app's bundled fonts, using sample data. The native app follows this design; the prototype's "Demo: jump to payday" link is demo-only.</sub></p>
+
+## What it is
+
+Duit tracks your money in rupiah with the smallest amount of ceremony. Every window has a pixel-art title bar, amounts show on a green LCD, and the home screen is a battery that drains as payday gets closer (*tanggal tua*, the lean days at the end of the month). Everything stays on your iPhone. There is no sign-up and no server.
+
+The **native iOS app in [`ios/`](ios)** is the product. The original React web app is kept as a reference (see [Legacy web app](#legacy-web-app)).
 
 ## Features
 
 | | |
 |---|---|
-| **3-second entry** | Custom keypad with a `000` key, one tap per category, and "Yesterday" in one tap. It remembers your last account. |
-| **Accounts & transfers** | Cash, bank, e-wallet (GoPay/OVO/…), credit card, and savings. Tracks net worth, assets, and debts. |
-| **Monthly budgets** | Overall and per category, with a pace marker, "Rp X/day left", and 80%/100% warnings (icon + text, never color alone). |
-| **Insights** | Where it went (ranked by category, with change vs last month), spending pace vs last month, 6-month income vs spending, and savings rate. Every chart has a table view. |
-| **Recurring & subscriptions** | Auto-log salary and Netflix, or get reminders for bills that vary ("Paid" / "Skip"). Shows fixed costs per month. |
-| **Offline-first sync** | Saves instantly to the device and syncs through *your own* Supabase project. Merges by last write wins, and deletes sync too. |
-| **App lock** | Face ID (device passkey via WebAuthn) with a 6-digit PIN fallback. Auto-locks after a delay you choose. |
-| **iOS-native feel** | Large collapsing titles, grouped lists, bottom sheets, safe areas, haptics, light/dark mode, and launch screens. |
-| **Your data, portable** | CSV export, full JSON backup and restore, and erase this device. |
+| **Today** | The *Tanggal Tua* battery shows how much you can still spend per day until payday. The **Duit Terminal** takes entries in plain slang (`mie ayam 22rb`) and answers questions (`sisa?`, `grab vs gojek`). **To do** lists bills to mark Paid or Skip, purchases to rate "worth it?", and wallets due for a balance check. |
+| **Fast entry** | Expense, Income and Transfer. A green LCD amount, a keypad with a `000` key, one tap per category, recent-title suggestions, and an Undo toast after saving. |
+| **Wallets** | Cash, bank, e-wallet, credit card and savings, each with a live balance. **Balance Check** compares a wallet with your bank or e-wallet app and helps you find the gap. |
+| **Activity** | Transactions grouped by day, with search and All / Money out / Money in filters. Tap a transaction to edit it. |
+| **Insights** | **Month:** spent vs income, budgets with a pace meter, where it went, and six months of trend, shown in rupiah, *mie ayam* or work hours. **Prices:** how the price of what you buy changes. **Habits:** the Habit Time Machine finds what you keep buying, shows what it costs a year, and projects what you'd save by buying it less often. |
+| **Payday Split** | A boot screen on payday, then give your salary a job: rent, savings, family, bills. The leftover becomes next month's spending money. |
+| **Budgets & bills** | An overall budget, per-category budgets, and recurring bills and subscriptions with Paid / Skip. |
+| **Look** | Automatic, Day or Night, three palettes (Candy, Arcade, Sunset), optional desktop dots. Text and background pairs meet WCAG AA contrast in both modes, and type scales with Dynamic Type. |
+| **Private by design** | Optional Face ID lock with your iPhone passcode as the backup. No account, no analytics, no network requests. |
+| **Your data, portable** | Export every transaction as CSV, or erase everything from Settings. |
+
+Setup lives in **Settings**: spending money, monthly salary, wallets, category budgets, bills and Payday Split buckets.
+
+## Status
+
+The native app covers the whole retro prototype. It builds, and its unit tests (all the money, budget, payday and slang-parsing rules) pass in CI whenever the native code changes. It is not on the App Store yet.
+
+Not built yet: iCloud sync (the **Connect…** button says so), JSON backup and restore, editing categories (the 22 defaults are fixed), widgets, notifications, and first-run onboarding. The roadmap, decisions and known gaps are in [`docs/IOS_NATIVE_PLAN.md`](docs/IOS_NATIVE_PLAN.md).
 
 ## Install on your iPhone
 
-1. Open the deployed URL in **Safari**.
-2. Tap **Share** → **Add to Home Screen**.
-3. Open **Duit** from the Home Screen. It runs full-screen and works offline.
-4. Optional: **More → App lock** to turn on Face ID.
+Requires **iOS 17 or later**.
 
-> Home Screen web apps are exempt from Safari's 7-day storage cleanup, and Duit also requests persistent storage. For extra safety, turn on sync or export a backup now and then.
+### Option 1: Unsigned IPA (no Mac needed)
 
-## Cloud sync (Supabase)
+1. Download `Duit-v0.2.0-unsigned.ipa` from the [v0.2.0 pre-release](https://github.com/samidun26/moneytracker/releases/tag/v0.2.0), the first build with the full retro app. Newer builds appear on the [Releases](https://github.com/samidun26/moneytracker/releases) page, and every CI run uploads a `Duit-unsigned-ipa` artifact on the [Actions](https://github.com/samidun26/moneytracker/actions/workflows/ios.yml) tab (kept for 14 days).
+2. iOS only runs signed apps, so re-sign it with [Sideloadly](https://sideloadly.io) or [AltStore](https://altstore.io) and a free Apple ID.
+3. Free Apple IDs expire the app after **7 days** and allow 3 sideloaded apps, so you need to refresh it from a computer.
 
-Duit works fully without an account. To use the same data on your iPhone and laptop, and to keep a cloud backup, connect a free Supabase project. It takes about 5 minutes:
+### Option 2: Build from source (Mac)
 
-1. Create a project at [supabase.com](https://supabase.com) (the free tier is plenty).
-2. **SQL Editor → New query** → paste [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
-3. **Project Settings → API**: copy the **Project URL** and the **publishable/anon key**.
-4. Either:
-   - **In the app:** More → Sync & backup → paste both → Connect. Repeat on each device. Or
-   - **At build time:** set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel (see [`.env.example`](.env.example)) so every device is preconfigured.
-5. Create your account in the app (email + password) and sign in on your other devices.
+```bash
+brew install xcodegen
+cd ios
+xcodegen generate     # writes Duit.xcodeproj (gitignored)
+open Duit.xcodeproj
+```
 
-> **Tip:** For a single-user app you can turn off **Authentication → Providers → Email → Confirm email** so sign-up works immediately. Email + password is used instead of magic links because iOS opens links in Safari, whose storage is separate from the Home Screen app.
+In Xcode, choose the **Duit** target, pick your Team under **Signing & Capabilities**, select your iPhone and press Run. If Xcode can't register `com.samidun26.duit` (a placeholder), change `PRODUCT_BUNDLE_IDENTIFIER` in [`ios/project.yml`](ios/project.yml). Run the tests with **Product → Test** (⌘U).
 
-**How it works:** each record is one row in a `records` table (a JSON payload) protected by row-level security. Pushes go through a `push_records` RPC with a server-side *last-write-wins* guard, so a phone that was offline can never overwrite newer edits. Pulls use a server-assigned timestamp cursor, so device clock skew doesn't matter. Default categories and recurring occurrences use deterministic IDs, so two devices never create duplicates.
+Your data stays on the phone between builds as long as the bundle ID doesn't change. Running `xcodegen generate` again resets Xcode's signing, so pick your Team again.
 
-## Development
+## Under the hood
+
+Swift · SwiftUI · SwiftData · XcodeGen · GitHub Actions (macOS runners). No third-party packages, no backend. Charts are drawn in SwiftUI. Fonts are bundled and open source (SIL OFL): Silkscreen, VT323 and IBM Plex Mono.
+
+```
+ios/
+├── Duit/
+│   ├── App/          entry point, shell, lock, one Ledger snapshot the screens read
+│   ├── Features/     Today, Transactions, Insights, Payday, Wallets, Settings
+│   ├── Components/   the retro kit: windows, bevel buttons, keypad, pixel icons, stamps
+│   ├── Models/       SwiftData models (Transaction, Account, Budget, RecurringRule…)
+│   ├── Services/     pure, unit-tested rules: balances, budgets, pay cycle, slang parser…
+│   └── Resources/    theme tokens, bundled fonts, generated pixel-icon data
+├── DuitTests/        unit tests for the services
+└── project.yml       XcodeGen spec
+design/prototype/     the interactive retro prototype (HTML), the visual and UX spec
+```
+
+Amounts are integer rupiah, so there are no rounding bugs. The calculation rules are ports of the web app's tested domain code (`src/domain`), and the prototype's own sample numbers are used as test expectations.
+
+## Privacy & security
+
+- Your data lives in a SwiftData store on your iPhone. The app has no server, no account and no analytics, and never makes a network request.
+- **Export CSV** only shares a file when you ask for it.
+- The lock is a privacy screen, not extra encryption. It uses Face ID with your iPhone passcode as the fallback, and locks as soon as the app goes to the background. Data at rest relies on iOS device encryption, which is on whenever your iPhone has a passcode.
+
+## Legacy web app
+
+The first version of Duit was a React PWA. It is now a **reference implementation**: the UI/UX spec and the tested spec for the calculation rules the native app ports. It stays deployed and works on its own, but gets no new product features.
+
+**Live:** [moneytracker-ten-phi.vercel.app](https://moneytracker-ten-phi.vercel.app) · Product notes: [`docs/PRD.md`](docs/PRD.md)
 
 ```bash
 npm install
@@ -69,38 +117,25 @@ npm run typecheck
 npm run build      # production build + service worker
 ```
 
-In dev mode, run `await __duitDemo.seedDemo()` in the browser console to load three months of realistic demo data.
+React 19 · TypeScript · Vite · Tailwind CSS v4 · Dexie (IndexedDB) · Supabase · Workbox. In dev mode, run `await __duitDemo.seedDemo()` in the browser console to load three months of demo data. The repo includes a `vercel.json` for deploying it.
 
-### Tech
+<details>
+<summary>Web app: optional cloud sync with Supabase</summary>
 
-React 19 · TypeScript · Vite · Tailwind CSS v4 · Dexie (IndexedDB) · Supabase · Workbox (vite-plugin-pwa) · Lucide icons. Charts are hand-rolled SVG with no chart library.
+The web app works fully without an account. To share data between devices and keep a cloud backup, connect a free Supabase project (about 5 minutes):
 
-```
-src/
-├── db/          Dexie schema, typed repository (all writes stamp updatedAt + dirty), seed data
-├── domain/      pure logic: balances, budgets, recurring schedules, insights, backup (unit-tested)
-├── sync/        Supabase client (lazy-loaded), LWW merge, push/pull engine + scheduler
-├── security/    WebAuthn Face ID + PBKDF2 PIN, lock screen
-├── components/  UI kit (Page, List, Sheet, Keypad, Meter, StatTile…) and charts
-├── features/    composer, transaction list, budget/recurring/account/category sheets
-└── pages/       screens
-```
+1. Create a project at [supabase.com](https://supabase.com).
+2. **SQL Editor → New query** → paste [`supabase/schema.sql`](supabase/schema.sql) → **Run**.
+3. **Project Settings → API**: copy the **Project URL** and the **publishable/anon key**.
+4. Either paste both in the app (**More → Sync & backup → Connect**), or set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel (see [`.env.example`](.env.example)).
+5. Create your account in the app (email + password) and sign in on your other devices.
 
-Product decisions, scope, and roadmap are in the [PRD](docs/PRD.md).
+Each record is one row in a `records` table (a JSON payload) protected by row-level security. Pushes go through a `push_records` RPC with a server-side last-write-wins guard, and pulls use a server-assigned timestamp cursor, so device clock skew doesn't matter. The native app does not use Supabase.
 
-## Deploy
+</details>
 
-The repo includes a `vercel.json` (Vite preset, SPA rewrites, and service-worker cache headers). Import the repo in Vercel, or run `vercel --prod`. HTTPS is required for the service worker and Face ID, and Vercel provides it by default.
+## Docs
 
-## Privacy & security
-
-- Data lives in IndexedDB on your device. It syncs only to the Supabase project **you** configure, isolated per user by row-level security.
-- The Supabase publishable (anon) key is designed to be public, and RLS enforces access.
-- The app lock is a privacy screen, not encryption. Data at rest relies on iOS device encryption (on whenever your iPhone has a passcode). The PIN is stored only as a salted PBKDF2-SHA256 hash, with escalating cooldowns after failed attempts.
-
-<p align="center">
-  <img src="docs/screenshots/recurring.png" width="200" alt="Recurring" />
-  <img src="docs/screenshots/insights-dark.png" width="200" alt="Insights in dark mode" />
-  <img src="docs/screenshots/app-lock.png" width="200" alt="App lock" />
-</p>
-<p align="center"><img src="docs/screenshots/desktop.png" width="820" alt="Desktop layout" /></p>
+- [`docs/IOS_NATIVE_PLAN.md`](docs/IOS_NATIVE_PLAN.md): native app roadmap, decisions and status
+- [`docs/APP_STORE_PLAN.md`](docs/APP_STORE_PLAN.md): Apple Developer Program, TestFlight and App Store checklist
+- [`CLAUDE.md`](CLAUDE.md): project rules and architecture principles
